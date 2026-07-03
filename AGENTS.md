@@ -11,10 +11,10 @@ settings.html      settings page, served from disk by the daemon (offline, no CD
 config.json        macOS config
 fonts/             bundled fonts (offline)
 models/            whisper .bin model goes here (gitignored)
-INSTALL-MAC.md     human install guide, macOS (Spanish)
+INSTALL-MAC.md     human install guide, macOS
 windows/           SELF-CONTAINED Windows port: its own flow.py, pill.py (tkinter),
                    config.json, settings.html, fonts/, launcher "Orac Voice.vbs",
-                   INSTALL.md (Spanish), test_logic.py, test-audio.wav
+                   INSTALL.md, test_logic.py, test-audio.wav
 ```
 
 Only 4 functions differ per platform (hotkey listener, clipboard, paste, sounds), all in the "plataforma" section of each `flow.py`. Everything else is identical between the two versions: if you fix shared logic in one, mirror it in the other.
@@ -41,8 +41,8 @@ Work inside the `windows/` folder (it is self-contained; it can be copied alone 
 
 1. Python 3.11+ from python.org, WITH "Add python.exe to PATH" checked.
 2. `pip install sounddevice pynput`
-3. whisper.cpp Windows binaries from https://github.com/ggml-org/whisper.cpp/releases: `whisper-bin-x64.zip` (CPU) or `whisper-cublas-*-bin-x64.zip` (NVIDIA). Extract so that `windows\whisper-bin\whisper-server.exe` exists (flatten any `Release/` subfolder).
-4. Model into `windows\models\`: `ggml-large-v3-turbo-q5_0.bin` (16GB+ RAM) or `ggml-small-q8_0.bin` (8GB, then update `whisper_model` in config.json). Download from https://huggingface.co/ggerganov/whisper.cpp/tree/main
+3. Check hardware FIRST (PowerShell): GPU via `(Get-CimInstance Win32_VideoController).Name`, physical cores via `(Get-CimInstance Win32_Processor).NumberOfCores`. Then whisper.cpp Windows binaries from https://github.com/ggml-org/whisper.cpp/releases: `whisper-cublas-*-bin-x64.zip` only if NVIDIA; otherwise `whisper-bin-x64.zip` (Intel/AMD integrated graphics like Iris Xe are NOT accelerated: pure CPU). Extract so that `windows\whisper-bin\whisper-server.exe` exists (flatten any `Release/` subfolder).
+4. Model into `windows\models\`, decided by GPU, not RAM (RAM only decides what fits; large on CPU ≈ 60 s per dictation, unusable): NVIDIA → `ggml-large-v3-turbo-q5_0.bin` (update `whisper_model` in config.json); no NVIDIA → `ggml-small-q8_0.bin` (the config.json default) and set `whisper_threads` in config.json to the physical core count. Download from https://huggingface.co/ggerganov/whisper.cpp/tree/main
 5. Ollama from https://ollama.com/download/windows then `ollama pull llama3.2:3b`
 6. Launch with `Orac Voice.vbs` (runs `pythonw flow.py` hidden). First run asks for microphone permission.
 

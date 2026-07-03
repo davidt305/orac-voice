@@ -30,10 +30,22 @@ Those are the only two. Everything else is standard library.
 
 ## Step 3: whisper.cpp (the transcription engine)
 
+First, check the hardware. Paste this in PowerShell:
+
+```powershell
+$gpu   = (Get-CimInstance Win32_VideoController).Name -join ", "
+$ram   = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
+$cores = (Get-CimInstance Win32_Processor).NumberOfCores
+if ($gpu -match "NVIDIA") { "$gpu | $ram GB | $cores cores -> cublas zip + large-v3-turbo model" }
+else { "$gpu | $ram GB | $cores cores -> CPU zip + small model + whisper_threads = $cores" }
+```
+
+The GPU decides the model, not the RAM: RAM only decides what fits in memory, not how fast it runs. The prebuilt binaries only accelerate NVIDIA cards; any other graphics (Intel Iris Xe, AMD integrated, etc.) runs on pure CPU, where the large model takes ~60 s per dictation. Unusable for push-to-talk.
+
 1. Go to https://github.com/ggml-org/whisper.cpp/releases (latest release).
-2. Download the Windows binaries zip:
-   - CPU (any laptop): `whisper-bin-x64.zip`
-   - NVIDIA GPU: the `whisper-cublas-*-bin-x64.zip` zip (faster)
+2. Download the Windows binaries zip the check above picked:
+   - No NVIDIA (pure CPU): `whisper-bin-x64.zip`
+   - NVIDIA GPU: the `whisper-cublas-*-bin-x64.zip` zip
 3. Extract the contents inside this folder, into `whisper-bin/`.
 4. Verify that `whisper-bin\whisper-server.exe` exists:
    ```
@@ -45,19 +57,22 @@ Note: if Windows SmartScreen blocks the .exe the first time, click "More info" t
 
 ## Step 4: the Whisper model
 
-Pick by the machine's RAM (Settings → System → About):
+Pick by the hardware check from Step 3:
 
-| RAM | Model | Size | Download |
-|-----|-------|------|----------|
-| 16 GB+ | `ggml-large-v3-turbo-q5_0.bin` | ~574 MB | https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin |
-| 8 GB | `ggml-small-q8_0.bin` | ~264 MB | https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q8_0.bin |
+| Hardware | Model | Size | Download |
+|----------|-------|------|----------|
+| No NVIDIA (pure CPU) | `ggml-small-q8_0.bin` | ~264 MB | https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q8_0.bin |
+| NVIDIA GPU | `ggml-large-v3-turbo-q5_0.bin` | ~574 MB | https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin |
 
 Save the file into this folder's `models/` directory.
 
-If you used the `small` model, edit `config.json` and change the `whisper_model` line to:
-```json
-"whisper_model": "models/ggml-small-q8_0.bin",
-```
+`config.json` already points at the small model. Then, per the Step 3 check:
+
+- **No NVIDIA**: set `"whisper_threads"` to the physical core count the check printed, e.g. `"whisper_threads": 8,` (0 keeps whisper's default of 4 threads; using all cores = faster transcription).
+- **NVIDIA**: point `whisper_model` at the large model:
+  ```json
+  "whisper_model": "models/ggml-large-v3-turbo-q5_0.bin",
+  ```
 
 ## Step 5: Ollama (the filler-word cleaner)
 
@@ -110,12 +125,13 @@ It should print the RAW and CLEAN text lines.
 - **Nothing happens when dictating**: check the log at `.tmp\orac.log` inside this folder.
 - **"pythonw is not recognized"**: Python is not on PATH. Reinstall checking "Add python.exe to PATH".
 - **Text doesn't paste but the "done" sound plays**: the text is ALWAYS in the clipboard; paste manually with Ctrl+V. Happens in apps running as administrator.
-- **Whisper is slow**: switch to the `small` model (Step 4) or use the cublas binary if there's an NVIDIA GPU.
+- **Whisper is slow**: check config.json: `whisper_model` must point at the small model (large is only viable with NVIDIA + cublas) and `whisper_threads` should equal your physical cores (Step 3 check). If the small model mishears a specific word, teach it in Settings → Dictionary instead of changing models.
 - **Restart the app**: "Quit Orac Voice" button at the bottom of the settings page, then double-click the .vbs again. (Plan B: Task Manager → end `pythonw.exe`; in that case whisper-server may stay running, which is fine, the next launch reuses it.)
 - **The Alt key opens the app's menu when released**: that's Windows behavior with Alt; use Right Ctrl or a Shift key as the dictation key.
 
 ## Notes for AI agents
 
+- Run the Step 3 PowerShell hardware check FIRST and follow its verdict. Never install the large model on a machine without NVIDIA: CPU-only large ≈ 60 s per dictation, regardless of RAM. On CPU machines set `whisper_threads` in config.json to the physical core count.
 - This folder is self-contained: `flow.py` (daemon), `pill.py` (visual indicator), `settings.html` (UI served at 127.0.0.1:8091), `config.json` (configuration), `fonts/` (offline).
 - The port 8091 bind is the single-instance lock: if `GET /api/state` answers, the app is already running.
 - Local API: `GET /api/state` (config + mics + history + dictionary), `POST /api/config`, `POST /api/history/clear`, `POST /api/dict/record`, `POST /api/dict/delete`, `POST /api/quit` (clean shutdown).

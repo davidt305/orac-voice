@@ -643,10 +643,12 @@ def ensure_whisper():
     if not bin_.is_absolute():
         bin_ = BASE / bin_
     global _whisper_proc
+    cmd = [str(bin_), "-m", str(BASE / CFG["whisper_model"]),
+           "--host", "127.0.0.1", "--port", base.rsplit(":", 1)[1]]
+    if CFG.get("whisper_threads"):  # 0/absent = whisper-server default (4)
+        cmd += ["-t", str(CFG["whisper_threads"])]
     _whisper_proc = subprocess.Popen(
-        [str(bin_), "-m", str(BASE / CFG["whisper_model"]),
-         "--host", "127.0.0.1", "--port", base.rsplit(":", 1)[1]],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     atexit.register(_whisper_proc.terminate)
     # ponytail: no restart supervision : if the server dies later, the error
