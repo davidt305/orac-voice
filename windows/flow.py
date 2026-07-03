@@ -259,9 +259,18 @@ def transcribe(wav_bytes):
         "response_format": "json",
         "temperature": "0.0",
     }
-    words = [e["written"] for e in dict_load()]
-    if words:
-        fields["prompt"] = ", ".join(words)  # sesga whisper hacia tu vocabulario
+    # initial_prompt: en Auto, un seed bilingüe ancla a whisper a transcribir
+    # cada idioma tal cual; sin esto, con voz real detecta UN idioma para toda
+    # la ventana y TRADUCE el resto. Se le suma el vocabulario del diccionario.
+    parts = []
+    if CFG["language"] == "auto":
+        parts.append("Ya, perfecto, so we need to check el presupuesto with "
+                     "the Sales Team, and then management, finance and "
+                     "operations confirman la reunión del martes, ok let's "
+                     "begin.")
+    parts += [e["written"] for e in dict_load()]
+    if parts:
+        fields["prompt"] = " ".join(parts)
     resp = multipart_post(CFG["whisper_url"], fields, wav_bytes, timeout=120)
     text = " ".join(resp.get("text", "").split())  # whisper mete \n en el texto
     return text, int((time.monotonic() - t0) * 1000)
