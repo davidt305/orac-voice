@@ -225,6 +225,12 @@
   .accbar .accnum {
     color: var(--lime); font: 700 11px "Inter", sans-serif; opacity: .55;
   }
+  .accbar .actag {
+    color: var(--dim); font: 600 10px "Inter", sans-serif;
+    letter-spacing: .04em; text-transform: uppercase;
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 2px 8px; margin-left: 8px;
+  }
   .acc {
     background: var(--card); border: 1px solid var(--line); border-radius: 12px;
     margin-bottom: 10px; overflow: hidden; transition: border-color .25s;
@@ -423,7 +429,7 @@
   </div>
   <div class="acc">
     <div class="accbar">
-      <span class="hleft"><span class="accnum">02</span><span class="ic sm"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/></svg></span> Cleaning up the text</span>
+      <span class="hleft"><span class="accnum">02</span><span class="ic sm"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/></svg></span> Cleaning up the text <span class="actag">LLM · AI Agent</span></span>
       <span class="chev">▼</span>
     </div>
     <div class="collapse closed"><div><p class="accbody">A small LLM removes filler words ("um", "o sea") and fixes punctuation and capitalization, nothing else. On <em>Local</em> it's Ollama, a free open-source model on this computer; on <em>Groq</em> it's Llama on the same private API. A safety check makes sure it never changes your words: if it tries, you get your exact original transcription instead.</p></div></div>
