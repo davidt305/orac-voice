@@ -1,81 +1,81 @@
 # Orac Voice
 
-Dictado por voz **100% local y privado** para macOS y Windows. Mantienes una tecla, hablas, sueltas: el texto limpio se pega solo donde esté tu cursor. Sin nube, sin suscripción, sin que tu voz salga del computador.
+**100% local, private push-to-talk dictation** for macOS and Windows. Hold a key, speak, release: clean text is pasted right where your cursor is. No cloud, no subscription, your voice never leaves your machine.
 
-> **English TL;DR:** Local, private push-to-talk dictation for macOS and Windows. Hold a key, speak, release: clean text is pasted at your cursor. Whisper.cpp + Ollama, nothing leaves your machine. Install guides: [macOS](INSTALL-MAC.md) · [Windows](windows/INSTALL.md) · [AI agents](AGENTS.md).
-
-**Pipeline:** mic → whisper.cpp (transcripción local) → Ollama llama3.2:3b (solo quita muletillas) → clipboard + pegado automático.
+**Pipeline:** mic → whisper.cpp (local transcription) → Ollama llama3.2:3b (removes filler words only) → clipboard + automatic paste.
 
 ## Features
 
-- **Push-to-talk**: mantener la tecla (Fn en Mac, Right Ctrl en Windows, rebindeable) y hablar. Doble-tap = manos libres.
-- **Bilingüe de verdad**: dicta en español, inglés o mezclado en la misma frase. Un guard determinista garantiza que el limpiador nunca traduzca lo que dijiste.
-- **Diccionario propio**: escribe una sigla o marca como debe quedar (ej. `n8n`), graba cómo la pronuncias una vez, y de ahí en adelante se escribe como tú quieres. Se guarda en `dictionary.json`.
-- **Limpieza de muletillas**: "um", "eh", "o sea", "ya po" desaparecen; el resto queda EXACTO como lo dijiste (calibrado para español chileno + inglés).
-- **Historial local**: página de ajustes con historial, copiar/borrar por dictado. Vive en `history.jsonl`, nunca sale de tu equipo.
-- **Nunca pierdes un dictado**: si el limpiador falla o se pasa de listo, se pega el texto crudo de Whisper.
+- **Push-to-talk**: hold the key (Fn on Mac, Right Ctrl on Windows, rebindable) and speak. Double-tap = hands-free mode.
+- **Truly bilingual**: dictate in Spanish, English, or both in the same sentence. A bilingual seed prompt anchors Whisper to transcribe each language as spoken, and a deterministic guard guarantees the cleaner never translates a single word you said.
+- **Custom dictionary**: type a term the way it should be written (e.g. `n8n`), record how you pronounce it once, and from then on it is typed exactly the way you want. Stored in `dictionary.json`.
+- **Filler-word cleanup**: "um", "uh", "eh", "o sea", "ya po" disappear; every other word stays EXACTLY as spoken (calibrated for Chilean Spanish + English).
+- **Local history**: settings page with per-dictation copy/delete. Lives in `history.jsonl`, never leaves your computer.
+- **You never lose a dictation**: if the cleaner fails or gets creative, the raw Whisper transcript is pasted instead.
 
-## Instalación
+## Install
 
-| Plataforma | Guía |
+| Platform | Guide |
 |---|---|
 | macOS | [INSTALL-MAC.md](INSTALL-MAC.md) |
 | Windows | [windows/INSTALL.md](windows/INSTALL.md) |
-| Agente de IA (Claude, etc.) instalándolo por ti | [AGENTS.md](AGENTS.md) |
+| An AI agent (Claude Code, etc.) installing it for you | [AGENTS.md](AGENTS.md) |
 
-La carpeta `windows/` es autocontenida: se puede copiar sola a un PC.
+The `windows/` folder is self-contained: it can be copied alone to a PC.
 
-## Uso
+## Usage
 
-| Gesto | Qué hace |
+| Gesture | What it does |
 |---|---|
-| Mantener la tecla + hablar + soltar | Dictado normal |
-| Doble-tap | Manos libres (graba sin sostener) |
-| Tecla de nuevo (en manos libres) | Detiene y procesa |
-| Escape | Cancela el dictado en curso, no pega nada |
+| Hold the key + speak + release | Normal dictation |
+| Double-tap | Hands-free (records without holding) |
+| Tap again (in hands-free) | Stops and processes |
+| Escape | Cancels the current dictation, pastes nothing |
 
-**Si no se pegó:** el texto siempre queda en el clipboard → pegar a mano.
+**If nothing was pasted:** the text is always in your clipboard → paste manually.
 
-## Ajustes (http://127.0.0.1:8091)
+## Settings (http://127.0.0.1:8091)
 
-En Mac: menú 🎙 → Settings & History. En Windows: doble click al launcher con la app corriendo.
+On Mac: menu bar 🎙 → Settings & History. On Windows: double-click the launcher while the app is running.
 
-- **Dictation key**: click al botón → aprieta cualquier tecla modificadora → guardada.
-- **Microphone**: selector; mics USB que no aceptan 16kHz se remuestrean automático.
+- **Dictation key**: click the button → press any modifier key → saved.
+- **Microphone**: picker; USB mics that reject 16kHz are resampled automatically.
 - **Language**: Auto / Español / English.
-- **Dictionary**: tus palabras propias (siglas, marcas, nombres). Escribir → Record → decirla una vez.
-- **History**: colapsable, copiar/borrar por dictado, Clear all con confirmación.
+- **Dictionary**: your custom words (acronyms, brands, names). Type → Record → say it once.
+- **History**: collapsible, per-item copy/delete, Clear all with confirmation.
+- **Quit**: button at the bottom of the page.
 
-## El log (por dictado)
+## The log (one line per dictation)
 
 ```
 14:32 | rec 3.4s | whisper 812ms | ollama 590ms (ok) | total 1.41s | 142 chars
 ```
 
-`FALLBACK raw` = se pegó el texto crudo de Whisper (Ollama falló o intentó reescribir). Log en `.tmp/orac.log`.
+`FALLBACK raw` = the raw Whisper text was pasted (Ollama failed or tried to rewrite). Log lives in `.tmp/orac.log`.
 
-## Config avanzada (config.json)
+## Advanced config (config.json)
 
-`double_tap_ms`, `min_record_s`, `ollama_timeout_s`, `system_prompt` (reglas del limpiador; si comete un error recurrente, agrega el caso textual como ejemplo few-shot).
+`double_tap_ms`, `min_record_s`, `ollama_timeout_s`, `system_prompt` (the cleaner's rules; if it makes a recurring mistake, add the exact case as a few-shot example). Note: the prompt's few-shot examples are intentionally in Spanish/mixed, they are the calibration for bilingual dictation.
 
-## Arquitectura
+## Architecture
 
 ```
-flow.py          daemon: hotkey, audio, pipeline, servidor de ajustes (:8091)
-pill.py          pastilla flotante (NSPanel en Mac / tkinter en Windows)
-settings.html    página de ajustes (servida local, offline)
-config.json      configuración
-windows/         port completo para Windows, autocontenido
+flow.py          daemon: hotkey, audio, pipeline, settings server (:8091)
+pill.py          floating pill (NSPanel on Mac / tkinter on Windows)
+settings.html    settings page (served locally, offline)
+config.json      configuration
+make-app.sh      macOS: builds "/Applications/Orac Voice.app" (proper TCC identity)
+windows/         complete, self-contained Windows port
 ```
 
-Las únicas piezas por plataforma son 4 funciones en `flow.py` (hotkey, clipboard, pegado, sonidos). Todo lo demás es idéntico en Mac y Windows.
+The only platform-specific pieces are a handful of functions in `flow.py` (hotkey, clipboard, paste, sounds, quit). Everything else is identical on Mac and Windows.
 
-## Problemas conocidos
+## Known issues
 
-- **Mac, la tecla no hace nada** → System Settings → Privacy & Security → Input Monitoring + Accessibility para tu Terminal (o la app que lo lanza). Cerrar y reabrir después.
-- **Whisper alucina en silencio** ("Subtítulos realizados por…"): agregar `-sns --no-speech-thold 0.6` al arranque del server en `ensure_whisper()`.
-- **Windows, apps como administrador**: no se puede pegar dentro de ellas (limitación de Windows); el texto queda en el clipboard.
+- **Mac, the key does nothing** → System Settings → Privacy & Security → Input Monitoring + Accessibility for "Orac Voice" (or your terminal if running from one). Reopen the app afterwards.
+- **Whisper hallucinates on silence** ("Thank you.", "Subtítulos realizados por…"): silent audio is already discarded by an energy gate; if it still happens, add `-sns --no-speech-thold 0.6` to the server launch in `ensure_whisper()`.
+- **Windows, apps running as administrator**: pasting into them is not possible (a Windows limitation); the text stays in the clipboard.
 
-## Licencia
+## License
 
-MIT. Las fuentes empaquetadas en `fonts/` (Poppins, Inter) son [SIL Open Font License 1.1](https://openfontlicense.org/).
+MIT. The bundled fonts in `fonts/` (Poppins, Inter) are licensed under the [SIL Open Font License 1.1](https://openfontlicense.org/).

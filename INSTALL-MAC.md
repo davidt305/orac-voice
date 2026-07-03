@@ -1,15 +1,15 @@
-# Orac Voice para macOS: instalación
+# Orac Voice for macOS: installation
 
-Tiempo estimado: 15-20 minutos, casi todo descarga de modelos.
+Estimated time: 15-20 minutes, mostly model downloads.
 
-## Requisitos
+## Requirements
 
-- macOS 13+ (Apple Silicon recomendado; en Intel funciona más lento)
+- macOS 13+ (Apple Silicon recommended; Intel works but slower)
 - [Homebrew](https://brew.sh)
-- 8 GB de RAM mínimo (16 GB recomendado)
-- ~5 GB de disco libre (modelos incluidos)
+- 8 GB RAM minimum (16 GB recommended)
+- ~5 GB free disk (models included)
 
-## Paso 1: motores locales
+## Step 1: local engines
 
 ```bash
 brew install whisper-cpp ollama
@@ -17,66 +17,66 @@ brew services start ollama
 ollama pull llama3.2:3b
 ```
 
-## Paso 2: dependencias Python
+## Step 2: Python dependencies
 
-Dentro de la carpeta del proyecto:
+Inside the project folder:
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install sounddevice pyobjc
 ```
 
-## Paso 3: el modelo de Whisper
+## Step 3: the Whisper model
 
-Elegir según la RAM (→ Apple → Acerca de esta Mac):
+Pick by RAM ( → About This Mac):
 
-| RAM | Modelo | Tamaño | Descarga |
-|-----|--------|--------|----------|
-| 16 GB o más | `ggml-large-v3-turbo-q5_0.bin` | ~574 MB | https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin |
+| RAM | Model | Size | Download |
+|-----|-------|------|----------|
+| 16 GB+ | `ggml-large-v3-turbo-q5_0.bin` | ~574 MB | https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin |
 | 8 GB | `ggml-small-q8_0.bin` | ~264 MB | https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q8_0.bin |
 
-Guardar en `models/`. Si usaste `small`, cambiar `whisper_model` en `config.json`:
+Save it into `models/`. If you picked `small`, change `whisper_model` in `config.json`:
 
 ```json
 "whisper_model": "models/ggml-small-q8_0.bin",
 ```
 
-Si tu whisper-server no quedó en `/opt/homebrew/bin/whisper-server` (Mac Intel: `/usr/local/bin/...`), ajustar `whisper_server_bin` en `config.json`.
+If your whisper-server is not at `/opt/homebrew/bin/whisper-server` (Intel Macs: `/usr/local/bin/...`), adjust `whisper_server_bin` in `config.json`.
 
-## Paso 4: crear la app y dar permisos
+## Step 4: build the app and grant permissions
 
 ```bash
 chmod +x make-app.sh && ./make-app.sh
 ```
 
-Esto crea **Orac Voice** en /Applications (con ícono y firma ad-hoc, para que los permisos aparezcan a nombre de "Orac Voice" y no de Terminal o Python). Ábrela desde Aplicaciones y macOS va a pedir:
+This creates **Orac Voice** in /Applications (with icon and ad-hoc signature, so macOS permission prompts and lists say "Orac Voice" instead of Terminal or Python). Open it from Applications and macOS will ask for:
 
-1. **Micrófono**: aceptar.
-2. **Input Monitoring** y **Accessibility**: System Settings → Privacy & Security, activar "Orac Voice" en ambas listas, y abrir la app de nuevo.
+1. **Microphone**: accept.
+2. **Input Monitoring** and **Accessibility**: System Settings → Privacy & Security, enable "Orac Voice" in both lists, then open the app again.
 
-Alternativa para debug (log en vivo en la terminal): `.venv/bin/python flow.py`. En ese caso los permisos se piden para tu Terminal.
+Debug alternative (live log in the terminal): `.venv/bin/python flow.py`. In that case permissions get requested for your terminal app.
 
-## Paso 5: probar
+## Step 5: try it
 
-1. Abrir Notas, click en el texto.
-2. Mantener **Fn**, decir "probando, probando, uno, dos, tres", soltar.
-3. Aparece la pastilla flotante y el texto se pega solo.
+1. Open Notes, click into the text.
+2. Hold **Fn**, say something, release.
+3. The floating pill appears and the text is pasted by itself.
 
-Prueba alternativa sin voz:
+Voice-free alternative test:
 
 ```bash
 .venv/bin/python flow.py --test windows/test-audio.wav
 ```
 
-Debe imprimir el texto crudo y el limpio.
+It should print the RAW and CLEAN text lines.
 
-## Uso diario
+## Daily use
 
-Ver el [README](README.md#uso). Ajustes en http://127.0.0.1:8091 (o menú 🎙).
+See the [README](README.md#usage). Settings at http://127.0.0.1:8091 (or the 🎙 menu).
 
-## Solución de problemas
+## Troubleshooting
 
-- **La tecla no hace nada**: faltan los permisos del Paso 4, o los diste a otra app. El proceso imprime el error exacto al arrancar.
-- **whisper-server no levanta**: correr `whisper-server -m models/<modelo>.bin --host 127.0.0.1 --port 8090` a mano para ver el error.
-- **Mic USB no abre** (ej. interfaces 48kHz): ya está manejado, se abre a la frecuencia nativa y se remuestrea.
-- **Log**: `.tmp/orac.log` (modo app) o la propia Terminal.
+- **The key does nothing**: the Step 4 permissions are missing, or were granted to a different app identity. The process prints the exact fix on startup.
+- **whisper-server won't start**: run `whisper-server -m models/<model>.bin --host 127.0.0.1 --port 8090` by hand to see the error.
+- **USB mic won't open** (e.g. 48kHz-only interfaces): already handled, it opens at native rate and resamples.
+- **Log**: `.tmp/orac.log` (app mode) or the terminal itself.

@@ -1,14 +1,14 @@
 #!/bin/bash
-# Crea "/Applications/Orac Voice.app" apuntando a ESTA copia del repo (macOS).
-# Con la app, los permisos de macOS (Micrófono, Accessibility, Input
-# Monitoring) se piden y se listan como "Orac Voice", no como Terminal/Python.
+# Builds "/Applications/Orac Voice.app" pointing at THIS copy of the repo (macOS).
+# With the app, macOS permissions (Microphone, Accessibility, Input Monitoring)
+# are requested and listed as "Orac Voice" instead of Terminal/Python.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="/Applications/Orac Voice.app"
 
 [ -x "$DIR/.venv/bin/python" ] || {
-  echo "Falta .venv/ en $DIR: corre primero los pasos 1-3 de INSTALL-MAC.md"
+  echo "Missing .venv/ in $DIR: run steps 1-3 of INSTALL-MAC.md first"
   exit 1
 }
 
@@ -29,7 +29,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleVersion</key><string>1.0</string>
   <key>LSUIElement</key><true/>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Orac Voice necesita el micrófono para transcribir tu dictado localmente.</string>
+  <string>Orac Voice needs the microphone to transcribe your dictation locally.</string>
 </dict>
 </plist>
 PLIST
@@ -44,9 +44,9 @@ chmod +x "$APP/Contents/MacOS/orac"
 
 cp "$DIR/assets/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 
-# firma ad-hoc: sin esto TCC no tiene identidad estable y los permisos
-# aparecen atribuidos a "Python" o a la Terminal
+# ad-hoc signature: without it TCC has no stable identity and the permission
+# entries get attributed to "Python" or the Terminal
 codesign --force --deep --sign - "$APP"
 
-echo "Listo: $APP"
-echo "Ábrela desde Aplicaciones; macOS pedirá los permisos como 'Orac Voice'."
+echo "Done: $APP"
+echo "Open it from Applications; macOS will request permissions as 'Orac Voice'."

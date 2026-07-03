@@ -1,123 +1,123 @@
-# Orac Voice para Windows: instalación
+# Orac Voice for Windows: installation
 
-Dictado por voz 100% local. Mantienes **Right Ctrl**, hablas, sueltas, y el texto limpio se pega donde esté tu cursor. Nada sale de tu computador.
+100% local voice dictation. Hold **Right Ctrl**, speak, release, and the clean text is pasted wherever your cursor is. Nothing leaves your computer.
 
-Esta guía sirve para una persona o para un agente de IA (Claude, ChatGPT, etc.) ejecutando los pasos. Tiempo estimado: 15-20 minutos, casi todo descarga de modelos.
+This guide works for a person or for an AI agent (Claude, ChatGPT, etc.) executing the steps. Estimated time: 15-20 minutes, mostly model downloads.
 
-## Requisitos
+## Requirements
 
-- Windows 10 22H2 o Windows 11, 64-bit
-- 8 GB de RAM mínimo (16 GB recomendado)
-- ~5 GB de disco libre (modelos incluidos)
+- Windows 10 22H2 or Windows 11, 64-bit
+- 8 GB RAM minimum (16 GB recommended)
+- ~5 GB free disk (models included)
 
-## Paso 1: Python
+## Step 1: Python
 
-1. Descargar Python 3.11 o superior desde https://www.python.org/downloads/
-2. Al instalar, marcar **"Add python.exe to PATH"** (crítico, no saltarse).
-3. Verificar en una terminal (PowerShell):
+1. Download Python 3.11 or newer from https://www.python.org/downloads/
+2. During install, check **"Add python.exe to PATH"** (critical, do not skip).
+3. Verify in a terminal (PowerShell):
    ```
    python --version
    ```
-   Debe responder `Python 3.11.x` o superior.
+   It must answer `Python 3.11.x` or newer.
 
-## Paso 2: dependencias Python
+## Step 2: Python dependencies
 
 ```
 pip install sounddevice pynput
 ```
 
-Son las únicas dos. Todo lo demás es librería estándar.
+Those are the only two. Everything else is standard library.
 
-## Paso 3: whisper.cpp (el motor de transcripción)
+## Step 3: whisper.cpp (the transcription engine)
 
-1. Ir a https://github.com/ggml-org/whisper.cpp/releases (release más reciente).
-2. Descargar el zip de binarios para Windows:
-   - CPU (cualquier laptop): `whisper-bin-x64.zip`
-   - Con GPU NVIDIA: el zip `whisper-cublas-*-bin-x64.zip` (más rápido)
-3. Extraer el contenido dentro de esta carpeta, en `whisper-bin/`.
-4. Verificar que exista `whisper-bin\whisper-server.exe`:
+1. Go to https://github.com/ggml-org/whisper.cpp/releases (latest release).
+2. Download the Windows binaries zip:
+   - CPU (any laptop): `whisper-bin-x64.zip`
+   - NVIDIA GPU: the `whisper-cublas-*-bin-x64.zip` zip (faster)
+3. Extract the contents inside this folder, into `whisper-bin/`.
+4. Verify that `whisper-bin\whisper-server.exe` exists:
    ```
    dir whisper-bin\whisper-server.exe
    ```
-   Si el zip trae los .exe en una subcarpeta (p. ej. `Release/`), mover los archivos para que el .exe quede directo en `whisper-bin\`.
+   If the zip has the .exe files inside a subfolder (e.g. `Release/`), move them so the .exe sits directly in `whisper-bin\`.
 
-Nota: si Windows SmartScreen bloquea el .exe la primera vez, click en "More info" y luego "Run anyway".
+Note: if Windows SmartScreen blocks the .exe the first time, click "More info" then "Run anyway".
 
-## Paso 4: el modelo de Whisper
+## Step 4: the Whisper model
 
-Elegir según la RAM del equipo (Configuración → Sistema → Acerca de):
+Pick by the machine's RAM (Settings → System → About):
 
-| RAM | Modelo | Tamaño | Descarga |
-|-----|--------|--------|----------|
-| 16 GB o más | `ggml-large-v3-turbo-q5_0.bin` | ~574 MB | https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin |
+| RAM | Model | Size | Download |
+|-----|-------|------|----------|
+| 16 GB+ | `ggml-large-v3-turbo-q5_0.bin` | ~574 MB | https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin |
 | 8 GB | `ggml-small-q8_0.bin` | ~264 MB | https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q8_0.bin |
 
-Guardar el archivo en la carpeta `models/` de esta carpeta.
+Save the file into this folder's `models/` directory.
 
-Si usaste el modelo `small`, editar `config.json` y cambiar la línea `whisper_model` a:
+If you used the `small` model, edit `config.json` and change the `whisper_model` line to:
 ```json
 "whisper_model": "models/ggml-small-q8_0.bin",
 ```
 
-## Paso 5: Ollama (el limpiador de muletillas)
+## Step 5: Ollama (the filler-word cleaner)
 
-1. Descargar e instalar desde https://ollama.com/download/windows
-2. En una terminal:
+1. Download and install from https://ollama.com/download/windows
+2. In a terminal:
    ```
    ollama pull llama3.2:3b
    ```
-   (~2 GB de descarga. Ollama queda corriendo como app de bandeja; dejarlo así.)
+   (~2 GB download. Ollama stays running as a tray app; leave it like that.)
 
-## Paso 6: arrancar
+## Step 6: launch
 
-Doble click a **`Orac Voice.vbs`**.
+Double-click **`Orac Voice.vbs`**.
 
-- La primera vez, Windows va a pedir permiso de micrófono: aceptar.
-- El primer arranque tarda unos segundos (carga del modelo).
-- Doble click de nuevo con la app ya corriendo abre la página de ajustes (http://127.0.0.1:8091).
+- The first time, Windows will ask for microphone permission: accept.
+- The first launch takes a few seconds (model loading).
+- Double-clicking again while the app is running opens the settings page (http://127.0.0.1:8091).
 
-## Paso 7: probar
+## Step 7: test
 
-1. Abrir el Bloc de notas (Notepad).
-2. Mantener presionada la tecla **Ctrl derecha**, decir "probando, probando, uno, dos, tres", y soltar.
-3. Aparece una pastilla negra abajo al centro mientras grabas, y el texto se pega solo.
+1. Open Notepad.
+2. Hold the **Right Ctrl** key, say "testing, testing, one, two, three", and release.
+3. A black pill appears at the bottom center while you record, and the text pastes itself.
 
-Prueba alternativa sin voz (terminal, en esta carpeta):
+Voice-free alternative test (terminal, in this folder):
 ```
 python flow.py --test test-audio.wav
 ```
-Debe imprimir el texto crudo y el limpio.
+It should print the RAW and CLEAN text lines.
 
-## Uso diario
+## Daily use
 
-| Acción | Cómo |
-|--------|------|
-| Dictar | Mantener Right Ctrl mientras hablas, soltar al terminar |
-| Manos libres | Doble-tap a Right Ctrl; un tap más para terminar |
-| Cancelar | Escape |
-| Ajustes, historial y diccionario | Doble click a Orac Voice.vbs (o http://127.0.0.1:8091) |
-| Cambiar la tecla de dictado | En ajustes, click al botón de la tecla y presionar la nueva |
-| Palabras propias (siglas, marcas) | En ajustes → Dictionary: escribir la palabra como debe quedar, click Record y decirla una vez |
-| Cerrar la app | Botón "Quit Orac Voice" al final de la página de ajustes |
+| Action | How |
+|--------|-----|
+| Dictate | Hold Right Ctrl while speaking, release when done |
+| Hands-free | Double-tap Right Ctrl; one more tap to finish |
+| Cancel | Escape |
+| Settings, history and dictionary | Double-click Orac Voice.vbs (or http://127.0.0.1:8091) |
+| Change the dictation key | In settings, click the key button and press the new key |
+| Custom words (acronyms, brands) | Settings → Dictionary: type the word as it should be written, click Record and say it once |
+| Quit the app | "Quit Orac Voice" button at the bottom of the settings page |
 
-## Arranque automático al prender el equipo (opcional)
+## Start automatically on boot (optional)
 
-1. `Win + R`, escribir `shell:startup`, Enter.
-2. Click derecho sobre `Orac Voice.vbs` → Mostrar más opciones → Crear acceso directo, y mover ese acceso directo a la carpeta que se abrió.
+1. `Win + R`, type `shell:startup`, Enter.
+2. Right-click `Orac Voice.vbs` → Show more options → Create shortcut, and move that shortcut into the folder that opened.
 
-## Solución de problemas
+## Troubleshooting
 
-- **No pasa nada al dictar**: revisar el log en `.tmp\orac.log` dentro de esta carpeta.
-- **"pythonw no se reconoce"**: Python quedó fuera del PATH. Reinstalar marcando "Add python.exe to PATH".
-- **El texto no se pega pero suena el "listo"**: el texto SIEMPRE queda en el clipboard; pegar con Ctrl+V a mano. Pasa en apps corriendo como administrador.
-- **Whisper lento**: cambiar al modelo `small` (Paso 4) o usar el binario cublas si hay GPU NVIDIA.
-- **Reiniciar la app**: botón "Quit Orac Voice" al final de la página de ajustes, y doble click al .vbs de nuevo. (Plan B: Administrador de tareas → terminar `pythonw.exe`; en ese caso whisper-server puede quedar corriendo, no es problema, el próximo arranque lo reutiliza.)
-- **La tecla Alt abre el menú de la app al soltarla**: es comportamiento de Windows con Alt; usar Right Ctrl o un Shift como tecla de dictado.
+- **Nothing happens when dictating**: check the log at `.tmp\orac.log` inside this folder.
+- **"pythonw is not recognized"**: Python is not on PATH. Reinstall checking "Add python.exe to PATH".
+- **Text doesn't paste but the "done" sound plays**: the text is ALWAYS in the clipboard; paste manually with Ctrl+V. Happens in apps running as administrator.
+- **Whisper is slow**: switch to the `small` model (Step 4) or use the cublas binary if there's an NVIDIA GPU.
+- **Restart the app**: "Quit Orac Voice" button at the bottom of the settings page, then double-click the .vbs again. (Plan B: Task Manager → end `pythonw.exe`; in that case whisper-server may stay running, which is fine, the next launch reuses it.)
+- **The Alt key opens the app's menu when released**: that's Windows behavior with Alt; use Right Ctrl or a Shift key as the dictation key.
 
-## Notas para agentes de IA
+## Notes for AI agents
 
-- Esta carpeta es autocontenida: `flow.py` (daemon), `pill.py` (indicador visual), `settings.html` (UI servida en 127.0.0.1:8091), `config.json` (configuración), `fonts/` (offline).
-- El bind del puerto 8091 es el candado de instancia única: si responde `GET /api/state`, la app ya corre.
-- API local: `GET /api/state` (config + mics + historial + diccionario), `POST /api/config`, `POST /api/history/clear`, `POST /api/dict/record`, `POST /api/dict/delete`, `POST /api/quit` (cierre limpio).
-- Verificación de instalación correcta, en orden: (1) `python --version` ≥ 3.11, (2) `pip show sounddevice pynput`, (3) existe `whisper-bin\whisper-server.exe`, (4) existe el `.bin` en `models\` y coincide con `whisper_model` de config.json, (5) `ollama list` incluye `llama3.2:3b`, (6) `python flow.py --test test-audio.wav` imprime CRUDO y LIMPIO, (7) lanzar el .vbs y `curl http://127.0.0.1:8091/api/state` responde JSON.
-- No editar `system_prompt` de config.json salvo pedido explícito: está calibrado para español chileno + inglés mezclados.
+- This folder is self-contained: `flow.py` (daemon), `pill.py` (visual indicator), `settings.html` (UI served at 127.0.0.1:8091), `config.json` (configuration), `fonts/` (offline).
+- The port 8091 bind is the single-instance lock: if `GET /api/state` answers, the app is already running.
+- Local API: `GET /api/state` (config + mics + history + dictionary), `POST /api/config`, `POST /api/history/clear`, `POST /api/dict/record`, `POST /api/dict/delete`, `POST /api/quit` (clean shutdown).
+- Install verification, in order: (1) `python --version` ≥ 3.11, (2) `pip show sounddevice pynput`, (3) `whisper-bin\whisper-server.exe` exists, (4) the `.bin` in `models\` exists and matches `whisper_model` in config.json, (5) `ollama list` includes `llama3.2:3b`, (6) `python flow.py --test test-audio.wav` prints RAW and CLEAN, (7) launch the .vbs and `curl http://127.0.0.1:8091/api/state` returns JSON.
+- Do not edit `system_prompt` in config.json unless explicitly asked: it is calibrated for mixed Chilean Spanish + English.

@@ -1,5 +1,5 @@
-' Orac Voice: launcher sin ventana de consola.
-' Doble click para iniciar; doble click de nuevo abre los ajustes en el navegador.
+' Orac Voice launcher (no console window).
+' Double-click to start; double-click again to open the settings page.
 Set sh = CreateObject("WScript.Shell")
 folder = Left(WScript.ScriptFullName, InStrRev(WScript.ScriptFullName, "\"))
 sh.CurrentDirectory = folder
