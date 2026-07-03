@@ -42,10 +42,10 @@ Work inside the `windows/` folder (it is self-contained; it can be copied alone 
 
 1. Python 3.11+ from python.org, WITH "Add python.exe to PATH" checked.
 2. `pip install sounddevice pynput`
-3. Check hardware FIRST (PowerShell): GPU via `(Get-CimInstance Win32_VideoController).Name`, physical cores via `(Get-CimInstance Win32_Processor).NumberOfCores`. Then whisper.cpp Windows binaries from https://github.com/ggml-org/whisper.cpp/releases: `whisper-cublas-*-bin-x64.zip` only if NVIDIA; otherwise `whisper-bin-x64.zip` (Intel/AMD integrated graphics like Iris Xe are NOT accelerated: pure CPU). Extract so that `windows\whisper-bin\whisper-server.exe` exists (flatten any `Release/` subfolder).
+3. Check hardware FIRST (PowerShell): GPU via `(Get-CimInstance Win32_VideoController).Name`, physical cores via `(Get-CimInstance Win32_Processor).NumberOfCores`. **No NVIDIA GPU → recommend Cloud mode (Groq) as the primary path**: key in `groq_key.txt`, `"provider": "groq"` in config.json, and skip steps 4-5 entirely (Intel/AMD integrated graphics like Iris Xe are NOT accelerated; pure-CPU whisper is unusably slow). Install the local engines on a non-NVIDIA machine only if the user explicitly wants full privacy. For the local path: whisper.cpp Windows binaries from https://github.com/ggml-org/whisper.cpp/releases — `whisper-cublas-*-bin-x64.zip` if NVIDIA, otherwise `whisper-bin-x64.zip`. Extract so that `windows\whisper-bin\whisper-server.exe` exists (flatten any `Release/` subfolder).
 4. Model into `windows\models\`, decided by GPU, not RAM (RAM only decides what fits; large on CPU ≈ 60 s per dictation, unusable): NVIDIA → `ggml-large-v3-turbo-q5_0.bin` (update `whisper_model` in config.json); no NVIDIA → `ggml-small-q8_0.bin` (the config.json default) and set `whisper_threads` in config.json to the physical core count. Download from https://huggingface.co/ggerganov/whisper.cpp/tree/main
 5. Ollama from https://ollama.com/download/windows then `ollama pull llama3.2:3b`
-6. Launch with `Orac Voice.vbs` (runs `pythonw flow.py` hidden). First run asks for microphone permission.
+6. Launch with `Orac Voice.vbs` (runs `pythonw flow.py` hidden). First run asks for microphone permission and opens a welcome page in the browser. Recommended: create a desktop shortcut to the .vbs with `assets\OracVoice.ico` as its icon (WScript.Shell CreateShortcut; the raw .vbs shows a generic icon).
 
 ## Verification checklist (run in order, all must pass)
 

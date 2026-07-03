@@ -40,7 +40,9 @@ On Mac: menu bar 🎙 → Settings & History. On Windows: double-click the launc
 
 - **Dictation key**: click the button → press any modifier key → saved.
 - **Microphone**: picker; USB mics that reject 16kHz are resampled automatically.
+- **Microphone access**: On/Off. Off releases the mic entirely (the OS stops showing it "in use") until you turn it back on.
 - **Language**: Auto / Español / English.
+- **Engine**: Local (private, on-device) or Groq (cloud API, needs `groq_key.txt`). Switches live, no restart.
 - **Dictionary**: your custom words (acronyms, brands, names). Type → Record → say it once.
 - **History**: collapsible, per-item copy/delete, Clear all with confirmation.
 - **Quit**: button at the bottom of the page.
@@ -48,10 +50,10 @@ On Mac: menu bar 🎙 → Settings & History. On Windows: double-click the launc
 ## The log (one line per dictation)
 
 ```
-14:32 | rec 3.4s | whisper 812ms | ollama 590ms (ok) | total 1.41s | 142 chars
+14:32 | rec 3.4s | whisper 812ms | cleaner 590ms (ok) | total 1.41s | 142 chars
 ```
 
-`FALLBACK raw` = the raw Whisper text was pasted (Ollama failed or tried to rewrite). Log lives in `.tmp/orac.log`.
+`FALLBACK raw` = the raw Whisper text was pasted (the cleaner failed or tried to rewrite). Log lives in `.tmp/orac.log`.
 
 ## Advanced config (config.json)
 

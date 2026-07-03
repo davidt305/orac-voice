@@ -39,10 +39,10 @@ $gpu   = (Get-CimInstance Win32_VideoController).Name -join ", "
 $ram   = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
 $cores = (Get-CimInstance Win32_Processor).NumberOfCores
 if ($gpu -match "NVIDIA") { "$gpu | $ram GB | $cores cores -> cublas zip + large-v3-turbo model" }
-else { "$gpu | $ram GB | $cores cores -> CPU zip + small model + whisper_threads = $cores" }
+else { "$gpu | $ram GB | $cores cores -> RECOMMENDED: Cloud mode (Groq). Local fallback: CPU zip + small model + whisper_threads = $cores" }
 ```
 
-The GPU decides the model, not the RAM: RAM only decides what fits in memory, not how fast it runs. The prebuilt binaries only accelerate NVIDIA cards; any other graphics (Intel Iris Xe, AMD integrated, etc.) runs on pure CPU, where the large model takes ~60 s per dictation. Unusable for push-to-talk.
+The GPU decides the model, not the RAM: RAM only decides what fits in memory, not how fast it runs. The prebuilt binaries only accelerate NVIDIA cards; any other graphics (Intel Iris Xe, AMD integrated, etc.) runs on pure CPU, where the large model takes ~60 s per dictation. Unusable for push-to-talk. That is why on non-NVIDIA machines the recommended setup is **Cloud mode (Groq)**: skip Steps 3-5 and follow the Cloud mode section below instead.
 
 1. Go to https://github.com/ggml-org/whisper.cpp/releases (latest release).
 2. Download the Windows binaries zip the check above picked:
@@ -90,8 +90,23 @@ Save the file into this folder's `models/` directory.
 Double-click **`Orac Voice.vbs`**.
 
 - The first time, Windows will ask for microphone permission: accept.
-- The first launch takes a few seconds (model loading).
+- The first launch takes a few seconds (model loading) and opens a welcome page in your browser.
 - Double-clicking again while the app is running opens the settings page (http://127.0.0.1:8091).
+
+### Give it the real icon (optional, recommended)
+
+The `.vbs` launcher shows a generic script icon. Create a desktop shortcut with the Orac Voice icon (PowerShell, from this folder):
+
+```powershell
+$sh  = New-Object -ComObject WScript.Shell
+$lnk = $sh.CreateShortcut("$env:USERPROFILE\Desktop\Orac Voice.lnk")
+$lnk.TargetPath       = "$PWD\Orac Voice.vbs"
+$lnk.IconLocation     = "$PWD\assets\OracVoice.ico"
+$lnk.WorkingDirectory = "$PWD"
+$lnk.Save()
+```
+
+Launch from that shortcut from now on.
 
 ## Step 7: test
 
@@ -131,7 +146,7 @@ With `provider: groq`, Steps 3, 4 and 5 (whisper.cpp, model, Ollama) are unused:
 ## Start automatically on boot (optional)
 
 1. `Win + R`, type `shell:startup`, Enter.
-2. Right-click `Orac Voice.vbs` → Show more options → Create shortcut, and move that shortcut into the folder that opened.
+2. Copy the "Orac Voice" desktop shortcut from Step 6 into the folder that opened (or right-click `Orac Voice.vbs` → Show more options → Create shortcut and move that in).
 
 ## Troubleshooting
 
@@ -145,7 +160,8 @@ With `provider: groq`, Steps 3, 4 and 5 (whisper.cpp, model, Ollama) are unused:
 ## Notes for AI agents
 
 - Run the Step 3 PowerShell hardware check FIRST and follow its verdict. Never install the large model on a machine without NVIDIA: CPU-only large ≈ 60 s per dictation, regardless of RAM. On CPU machines set `whisper_threads` in config.json to the physical core count — or recommend Cloud mode (Groq), which makes local engine speed irrelevant.
-- Cloud mode: `"provider": "groq"` in config.json + the key in `groq_key.txt` next to flow.py (gitignored — NEVER put the key in config.json or in a commit). whisper.cpp, the model and Ollama are then not needed. Verification: `python flow.py --test test-audio.wav` passes with the key present, and exits with a clear "no API key" message without it.
+- Cloud mode: `"provider": "groq"` in config.json + the key in `groq_key.txt` next to flow.py (gitignored — NEVER put the key in config.json or in a commit). whisper.cpp, the model and Ollama are then not needed. Verification: `python flow.py --test test-audio.wav` passes with the key present, and exits with a clear "no API key" message without it. The engine can also be switched live from the settings page (Engine row).
+- Desktop/startup shortcuts should point at `Orac Voice.vbs` with `assets\OracVoice.ico` as IconLocation (see Step 6): the raw .vbs shows a generic icon.
 - This folder is self-contained: `flow.py` (daemon), `pill.py` (visual indicator), `settings.html` (UI served at 127.0.0.1:8091), `config.json` (configuration), `fonts/` (offline).
 - The port 8091 bind is the single-instance lock: if `GET /api/state` answers, the app is already running.
 - Local API: `GET /api/state` (config + mics + history + dictionary), `POST /api/config`, `POST /api/history/clear`, `POST /api/dict/record`, `POST /api/dict/delete`, `POST /api/quit` (clean shutdown).
