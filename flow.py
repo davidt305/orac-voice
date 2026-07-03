@@ -288,8 +288,9 @@ def _rewrote(raw, text):
     out = [w for w in _norm_words(text) if w]
     if not out:
         return True
-    new = sum(1 for w in out if w not in raw_words)
-    return new / len(out) > 0.2  # ponytail: umbral fijo; config si molesta
+    # tolerancia cero: hasta UNA palabra nueva es traducción/reescritura
+    # (con umbral porcentual, "operations"->"operaciones" se colaba)
+    return any(w not in raw_words for w in out)
 
 
 def clean(raw):
