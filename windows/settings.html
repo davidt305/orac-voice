@@ -87,6 +87,7 @@
     50% { box-shadow: 0 3px 0 #7f9e00, 0 0 24px rgba(204, 255, 0, .65); }
   }
   .seg button.pulse { animation: pulseGlow 2.2s ease-in-out infinite; }
+  .recdot { color: #ff153f; }
   #dictword {
     background: #262626; color: var(--txt); border: 1px solid #383838;
     border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 13px;
@@ -277,7 +278,7 @@
       <div><b>Custom words</b>
       <small>Type a word as it should be typed, click Record and say it once</small></div>
     </div>
-    <div class="seg" style="flex-wrap:nowrap"><input id="dictword" placeholder="e.g. n8n" maxlength="40"><button id="dictrec">● Record</button></div>
+    <div class="seg" style="flex-wrap:nowrap"><input id="dictword" placeholder="e.g. n8n" maxlength="40"><button id="dictrec"><span class="recdot">●</span> Record</button></div>
   </div>
   <div id="dictlist"></div>
 </div>
@@ -488,7 +489,7 @@ dictBtn.onclick = async () => {
   } finally {
     dictBtn.disabled = false;
     dictBtn.classList.remove("on", "pulse");
-    dictBtn.textContent = "● Record";
+    dictBtn.innerHTML = '<span class="recdot">●</span> Record';
   }
 };
 document.getElementById("dictword").addEventListener("keydown", e => {
