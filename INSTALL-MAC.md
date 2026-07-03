@@ -70,6 +70,20 @@ Voice-free alternative test:
 
 It should print the RAW and CLEAN text lines.
 
+## Cloud mode (Groq, optional)
+
+Run transcription + cleanup on Groq's free API instead of the local engines. Use it when the machine is too weak for local whisper — a 60 s dictation drops from ~20-30 s of waiting to ~1-2 s. Trade-off: **your voice audio is sent to Groq** (they don't train on API data, but it does leave your machine).
+
+1. Create a free API key (no credit card) at https://console.groq.com/keys
+2. Save it in a file named `groq_key.txt` next to `flow.py`. It is gitignored: never commit it, never put it in `config.json`. Alternative: set the `GROQ_API_KEY` environment variable.
+3. In `config.json`: `"provider": "groq"`
+4. Restart the app.
+
+With `provider: groq`, Steps 1 and 3 (whisper.cpp + model) and Ollama are unused and can be skipped or uninstalled. Free tier limits (8 h of audio and 1,000 cleanups per day) are far beyond real dictation use. Groq-mode troubleshooting:
+
+- `CERTIFICATE_VERIFY_FAILED` (python.org installs): run `Install Certificates.command` inside `/Applications/Python 3.x/`.
+- `model_decommissioned` (HTTP 400): Groq retired a model; update `groq_stt_model` / `groq_chat_model` in `config.json` per https://console.groq.com/docs/deprecations
+
 ## Daily use
 
 See the [README](README.md#usage). Settings at http://127.0.0.1:8091 (or the 🎙 menu).

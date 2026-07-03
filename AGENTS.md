@@ -1,6 +1,6 @@
 # Orac Voice: guide for AI agents
 
-You are installing or operating **Orac Voice**, a fully local push-to-talk dictation app. Nothing leaves the machine: transcription is whisper.cpp over localhost, filler-word cleanup is Ollama over localhost, and the result is pasted at the user's cursor.
+You are installing or operating **Orac Voice**, a local-first push-to-talk dictation app. By default nothing leaves the machine: transcription is whisper.cpp over localhost, filler-word cleanup is Ollama over localhost, and the result is pasted at the user's cursor. With `"provider": "groq"` in config.json, transcription + cleanup run on Groq's API instead (audio leaves the machine; key in `groq_key.txt` next to flow.py, or the `GROQ_API_KEY` env var) and the local engines are not needed at all — the right call for machines without an NVIDIA GPU.
 
 ## Repo layout
 
@@ -9,6 +9,7 @@ flow.py            macOS daemon (hotkey, audio, pipeline, settings server on 127
 pill.py            macOS floating pill (NSPanel, PyObjC)
 settings.html      settings page, served from disk by the daemon (offline, no CDN)
 config.json        macOS config
+groq_key.txt       Groq API key, only for provider=groq (gitignored; may not exist)
 fonts/             bundled fonts (offline)
 models/            whisper .bin model goes here (gitignored)
 INSTALL-MAC.md     human install guide, macOS
@@ -50,9 +51,9 @@ Work inside the `windows/` folder (it is self-contained; it can be copied alone 
 
 1. `python --version` ≥ 3.11
 2. `pip show sounddevice pynput` (Windows) / `pyobjc` present in venv (macOS)
-3. whisper binary exists (`whisper-bin\whisper-server.exe` on Windows; `which whisper-server` on macOS)
-4. The `.bin` referenced by `whisper_model` in config.json exists under `models/`
-5. `ollama list` includes `llama3.2:3b`
+3. whisper binary exists (`whisper-bin\whisper-server.exe` on Windows; `which whisper-server` on macOS) — provider=local only
+4. The `.bin` referenced by `whisper_model` in config.json exists under `models/` — provider=local only
+5. `ollama list` includes `llama3.2:3b` — provider=local only. For provider=groq, replace 3-5 with: `groq_key.txt` exists next to flow.py (and `--test` without it exits with a clear "no API key" message)
 6. Logic self-test (no audio needed, any OS): `python windows/test_logic.py` prints `ALL OK`. It backs up config.json/history.jsonl/dictionary.json to `*.bak` and restores them on exit; if it ever dies mid-run, restore from the leftover `.bak` files.
 7. Headless E2E (whisper + ollama, no mic): `python flow.py --test <path-to>/test-audio.wav` prints RAW and CLEAN lines
 8. Launch the daemon; `curl http://127.0.0.1:8091/api/state` returns JSON
@@ -73,5 +74,6 @@ The 8091 bind is the single-instance lock: if `GET /api/state` answers, the app 
 
 - Do NOT edit `system_prompt` in config.json unless explicitly asked: it is calibrated for Chilean Spanish + English code-switching, with a deterministic guard in `clean()` that falls back to the raw transcript if the LLM rewrites instead of only deleting fillers.
 - Do NOT commit `history.jsonl`, `dictionary.json`, `models/`, `whisper-bin/`, `.tmp/` (already gitignored): they contain user data or large binaries.
+- The Groq API key lives ONLY in `groq_key.txt` (gitignored) or the `GROQ_API_KEY` env var. NEVER in config.json (it is tracked in a public repo and rewritten by the app) and NEVER in a commit or a chat log.
 - Restart after editing `flow.py` or `config.json` (settings.html is re-read per request; a browser refresh is enough for it).
 - Clean shutdown on both platforms: the "Quit Orac Voice" button at the bottom of the settings page, or `POST /api/quit`. Fallbacks: macOS `kill $(pgrep -f flow.py)`; Windows end `pythonw.exe` in Task Manager (an orphaned whisper-server is fine: the next launch reuses it).

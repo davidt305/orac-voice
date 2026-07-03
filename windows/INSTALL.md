@@ -30,6 +30,8 @@ Those are the only two. Everything else is standard library.
 
 ## Step 3: whisper.cpp (the transcription engine)
 
+> Using **Cloud mode (Groq)**? Skip Steps 3, 4 and 5 entirely — see the "Cloud mode" section below. On machines without an NVIDIA GPU it is also the biggest speed upgrade available.
+
 First, check the hardware. Paste this in PowerShell:
 
 ```powershell
@@ -103,6 +105,17 @@ python flow.py --test test-audio.wav
 ```
 It should print the RAW and CLEAN text lines.
 
+## Cloud mode (Groq, optional)
+
+Run transcription + cleanup on Groq's free API instead of the local engines. On a CPU-only laptop a 60 s dictation drops from ~20-30 s of waiting to ~1-2 s, with better accuracy (large-v3-turbo instead of small). Trade-off: **your voice audio is sent to Groq** (they don't train on API data, but it does leave your machine).
+
+1. Create a free API key (no credit card) at https://console.groq.com/keys
+2. Save it in a file named `groq_key.txt` in this folder (next to `flow.py`). It is gitignored: never commit it, never put it in `config.json`. Alternative: set the `GROQ_API_KEY` environment variable.
+3. In `config.json`: `"provider": "local"` → `"provider": "groq"`
+4. Restart the app (Quit button in settings, then double-click the .vbs).
+
+With `provider: groq`, Steps 3, 4 and 5 (whisper.cpp, model, Ollama) are unused: skip them on a fresh install, or uninstall Ollama to free ~3 GB on an existing one. Free tier limits (8 h of audio and 1,000 cleanups per day) are far beyond real dictation use. If Groq ever retires a model (`model_decommissioned`, HTTP 400), update `groq_stt_model` / `groq_chat_model` in `config.json` per https://console.groq.com/docs/deprecations
+
 ## Daily use
 
 | Action | How |
@@ -125,13 +138,14 @@ It should print the RAW and CLEAN text lines.
 - **Nothing happens when dictating**: check the log at `.tmp\orac.log` inside this folder.
 - **"pythonw is not recognized"**: Python is not on PATH. Reinstall checking "Add python.exe to PATH".
 - **Text doesn't paste but the "done" sound plays**: the text is ALWAYS in the clipboard; paste manually with Ctrl+V. Happens in apps running as administrator.
-- **Whisper is slow**: check config.json: `whisper_model` must point at the small model (large is only viable with NVIDIA + cublas) and `whisper_threads` should equal your physical cores (Step 3 check). If the small model mishears a specific word, teach it in Settings → Dictionary instead of changing models.
+- **Whisper is slow**: check config.json: `whisper_model` must point at the small model (large is only viable with NVIDIA + cublas) and `whisper_threads` should equal your physical cores (Step 3 check). If it is still too slow, switch to Cloud mode (Groq) above — on CPU-only machines it is the biggest speedup available. If the small model mishears a specific word, teach it in Settings → Dictionary instead of changing models.
 - **Restart the app**: "Quit Orac Voice" button at the bottom of the settings page, then double-click the .vbs again. (Plan B: Task Manager → end `pythonw.exe`; in that case whisper-server may stay running, which is fine, the next launch reuses it.)
 - **The Alt key opens the app's menu when released**: that's Windows behavior with Alt; use Right Ctrl or a Shift key as the dictation key.
 
 ## Notes for AI agents
 
-- Run the Step 3 PowerShell hardware check FIRST and follow its verdict. Never install the large model on a machine without NVIDIA: CPU-only large ≈ 60 s per dictation, regardless of RAM. On CPU machines set `whisper_threads` in config.json to the physical core count.
+- Run the Step 3 PowerShell hardware check FIRST and follow its verdict. Never install the large model on a machine without NVIDIA: CPU-only large ≈ 60 s per dictation, regardless of RAM. On CPU machines set `whisper_threads` in config.json to the physical core count — or recommend Cloud mode (Groq), which makes local engine speed irrelevant.
+- Cloud mode: `"provider": "groq"` in config.json + the key in `groq_key.txt` next to flow.py (gitignored — NEVER put the key in config.json or in a commit). whisper.cpp, the model and Ollama are then not needed. Verification: `python flow.py --test test-audio.wav` passes with the key present, and exits with a clear "no API key" message without it.
 - This folder is self-contained: `flow.py` (daemon), `pill.py` (visual indicator), `settings.html` (UI served at 127.0.0.1:8091), `config.json` (configuration), `fonts/` (offline).
 - The port 8091 bind is the single-instance lock: if `GET /api/state` answers, the app is already running.
 - Local API: `GET /api/state` (config + mics + history + dictionary), `POST /api/config`, `POST /api/history/clear`, `POST /api/dict/record`, `POST /api/dict/delete`, `POST /api/quit` (clean shutdown).

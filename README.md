@@ -1,8 +1,8 @@
 # Orac Voice
 
-**100% local, private push-to-talk dictation** for macOS and Windows. Hold a key, speak, release: clean text is pasted right where your cursor is. No cloud, no subscription, your voice never leaves your machine.
+**Local-first, private push-to-talk dictation** for macOS and Windows. Hold a key, speak, release: clean text is pasted right where your cursor is. By default everything runs 100% local: no cloud, no subscription, your voice never leaves your machine. An optional cloud mode (`"provider": "groq"` in config.json) trades that guarantee for speed on weak hardware — see the install guides.
 
-**Pipeline:** mic → whisper.cpp (local transcription) → Ollama llama3.2:3b (removes filler words only) → clipboard + automatic paste.
+**Pipeline:** mic → whisper.cpp (local transcription) → Ollama llama3.2:3b (removes filler words only) → clipboard + automatic paste. With `provider: groq`, transcription and cleanup run on Groq's API instead (your audio leaves the machine; the free tier covers heavy daily dictation).
 
 ## Features
 
@@ -55,7 +55,7 @@ On Mac: menu bar 🎙 → Settings & History. On Windows: double-click the launc
 
 ## Advanced config (config.json)
 
-`double_tap_ms`, `min_record_s`, `ollama_timeout_s`, `system_prompt` (the cleaner's rules; if it makes a recurring mistake, add the exact case as a few-shot example). Note: the prompt's few-shot examples are intentionally in Spanish/mixed, they are the calibration for bilingual dictation.
+`provider` (`"local"` or `"groq"`), `groq_stt_model`, `groq_chat_model`, `double_tap_ms`, `min_record_s`, `ollama_timeout_s`, `system_prompt` (the cleaner's rules; if it makes a recurring mistake, add the exact case as a few-shot example). Note: the prompt's few-shot examples are intentionally in Spanish/mixed, they are the calibration for bilingual dictation.
 
 ## Architecture
 
