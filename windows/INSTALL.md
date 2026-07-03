@@ -30,7 +30,7 @@ Those are the only two. Everything else is standard library.
 
 ## Step 3: whisper.cpp (the transcription engine)
 
-> Using **Cloud mode (Groq)**? Skip Steps 3, 4 and 5 entirely — see the "Cloud mode" section below. On machines without an NVIDIA GPU it is also the biggest speed upgrade available.
+> Using **Cloud mode (Groq)**? Skip Steps 3, 4 and 5 entirely and see the "Cloud mode" section below. On machines without an NVIDIA GPU it is also the biggest speed upgrade available.
 
 First, check the hardware. Paste this in PowerShell:
 
@@ -141,7 +141,7 @@ With `provider: groq`, Steps 3, 4 and 5 (whisper.cpp, model, Ollama) are unused:
 | Settings, history and dictionary | Double-click Orac Voice.vbs (or http://127.0.0.1:8091) |
 | Change the dictation key | In settings, click the key button and press the new key |
 | Custom words (acronyms, brands) | Settings → Dictionary: type the word as it should be written, click Record and say it once |
-| Quit the app | "Quit Orac Voice" button at the bottom of the settings page |
+| Quit the app | Red "Quit" button at the top right of the settings page |
 
 ## Start automatically on boot (optional)
 
@@ -153,14 +153,14 @@ With `provider: groq`, Steps 3, 4 and 5 (whisper.cpp, model, Ollama) are unused:
 - **Nothing happens when dictating**: check the log at `.tmp\orac.log` inside this folder.
 - **"pythonw is not recognized"**: Python is not on PATH. Reinstall checking "Add python.exe to PATH".
 - **Text doesn't paste but the "done" sound plays**: the text is ALWAYS in the clipboard; paste manually with Ctrl+V. Happens in apps running as administrator.
-- **Whisper is slow**: check config.json: `whisper_model` must point at the small model (large is only viable with NVIDIA + cublas) and `whisper_threads` should equal your physical cores (Step 3 check). If it is still too slow, switch to Cloud mode (Groq) above — on CPU-only machines it is the biggest speedup available. If the small model mishears a specific word, teach it in Settings → Dictionary instead of changing models.
-- **Restart the app**: "Quit Orac Voice" button at the bottom of the settings page, then double-click the .vbs again. (Plan B: Task Manager → end `pythonw.exe`; in that case whisper-server may stay running, which is fine, the next launch reuses it.)
+- **Whisper is slow**: check config.json: `whisper_model` must point at the small model (large is only viable with NVIDIA + cublas) and `whisper_threads` should equal your physical cores (Step 3 check). If it is still too slow, switch to Cloud mode (Groq) above: on CPU-only machines it is the biggest speedup available. If the small model mishears a specific word, teach it in Settings → Dictionary instead of changing models.
+- **Restart the app**: red "Quit" button at the top right of the settings page, then double-click the .vbs again. (Plan B: Task Manager → end `pythonw.exe`; in that case whisper-server may stay running, which is fine, the next launch reuses it.)
 - **The Alt key opens the app's menu when released**: that's Windows behavior with Alt; use Right Ctrl or a Shift key as the dictation key.
 
 ## Notes for AI agents
 
-- Run the Step 3 PowerShell hardware check FIRST and follow its verdict. Never install the large model on a machine without NVIDIA: CPU-only large ≈ 60 s per dictation, regardless of RAM. On CPU machines set `whisper_threads` in config.json to the physical core count — or recommend Cloud mode (Groq), which makes local engine speed irrelevant.
-- Cloud mode: `"provider": "groq"` in config.json + the key in `groq_key.txt` next to flow.py (gitignored — NEVER put the key in config.json or in a commit). whisper.cpp, the model and Ollama are then not needed. Verification: `python flow.py --test test-audio.wav` passes with the key present, and exits with a clear "no API key" message without it. The engine can also be switched live from the settings page (Engine row).
+- Run the Step 3 PowerShell hardware check FIRST and follow its verdict. Never install the large model on a machine without NVIDIA: CPU-only large ≈ 60 s per dictation, regardless of RAM. On CPU machines set `whisper_threads` in config.json to the physical core count, or recommend Cloud mode (Groq), which makes local engine speed irrelevant.
+- Cloud mode: `"provider": "groq"` in config.json + the key in `groq_key.txt` next to flow.py (gitignored: NEVER put the key in config.json or in a commit). whisper.cpp, the model and Ollama are then not needed. Verification: `python flow.py --test test-audio.wav` passes with the key present, and exits with a clear "no API key" message without it. The engine can also be switched live from the settings page (Engine row).
 - Desktop/startup shortcuts should point at `Orac Voice.vbs` with `assets\OracVoice.ico` as IconLocation (see Step 6): the raw .vbs shows a generic icon.
 - This folder is self-contained: `flow.py` (daemon), `pill.py` (visual indicator), `settings.html` (UI served at 127.0.0.1:8091), `config.json` (configuration), `fonts/` (offline).
 - The port 8091 bind is the single-instance lock: if `GET /api/state` answers, the app is already running.

@@ -72,7 +72,7 @@ It should print the RAW and CLEAN text lines.
 
 ## Cloud mode (Groq, optional)
 
-Run transcription + cleanup on Groq's free API instead of the local engines. Use it when the machine is too weak for local whisper — a 60 s dictation drops from ~20-30 s of waiting to ~1-2 s. Trade-off: **your voice audio is sent to Groq** (they don't train on API data, but it does leave your machine).
+Run transcription + cleanup on Groq's free API instead of the local engines. Use it when the machine is too weak for local whisper: a 60 s dictation drops from ~20-30 s of waiting to ~1-2 s. Trade-off: **your voice audio is sent to Groq** (they don't train on API data, but it does leave your machine).
 
 1. Create a free API key (no credit card) at https://console.groq.com/keys
 2. Save it in a file named `groq_key.txt` next to `flow.py`. It is gitignored: never commit it, never put it in `config.json`. Alternative: set the `GROQ_API_KEY` environment variable.

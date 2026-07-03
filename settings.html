@@ -211,11 +211,42 @@
     margin-bottom: 20px;
   }
   @media (max-width: 640px) { #howto { grid-template-columns: repeat(2, 1fr); } }
-  #privacy {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-    margin-bottom: 20px;
+  #privbox {
+    border: .5px solid rgba(255, 21, 63, .75); border-radius: 16px;
+    padding: 18px 20px 12px; margin: 28px 0 20px;
+    box-shadow: 0 0 14px rgba(255, 21, 63, .08);
   }
-  @media (max-width: 640px) { #privacy { grid-template-columns: 1fr; } }
+  #privbox h2 { margin: 0 0 10px 4px; }
+  #privacy .acc:last-child { margin-bottom: 2px; }
+  #privtitle { color: #fff; }
+  #privtitle .hleft { display: flex; align-items: center; gap: 10px; }
+  #privtitle .qic { color: var(--lime); font-size: 12px; font-weight: 700; }
+  #privintro { color: var(--dim); font-size: 13.5px; margin: 0 4px 12px; }
+  .accbar .accnum {
+    color: var(--lime); font: 700 11px "Inter", sans-serif; opacity: .55;
+  }
+  .acc {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    margin-bottom: 10px; overflow: hidden; transition: border-color .25s;
+  }
+  .acc:hover { border-color: rgba(204, 255, 0, .45); }
+  .accbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 13px 16px; cursor: pointer; user-select: none;
+    font-size: 14px; font-weight: 600;
+  }
+  .accbar .hleft { display: flex; align-items: center; gap: 10px; }
+  .accbar .chev {
+    display: inline-block; color: var(--lime); font-size: 11px;
+    transition: transform .35s cubic-bezier(.4, 0, .2, 1);
+    text-shadow: 0 0 6px rgba(204, 255, 0, .6);
+  }
+  .acc.open .chev { transform: rotate(180deg); }
+  .accbody {
+    padding: 0 16px 14px 54px; color: var(--dim);
+    font-size: 13px; line-height: 1.55;
+  }
+  .accbody em { color: var(--lime); font-style: normal; font-weight: 600; }
   .stepcard {
     position: relative; background: var(--card); border: 1px solid var(--line);
     border-radius: 14px; padding: 16px 14px 14px;
@@ -288,7 +319,7 @@
     <line x1="36" y1="88" x2="64" y2="88" />
   </svg>
   <h1>Orac<span class="voice">Voice</span></h1>
-  <button id="quit">Quit</button>
+  <button id="quit">✕ Quit</button>
 </header>
 <div id="badges"></div>
 
@@ -326,7 +357,7 @@
   <div class="row">
     <div class="label">
       <div class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg></div>
-      <div><b>Engine<span class="help">?<span class="tip"><b>Local</b> runs everything on this computer — your audio never leaves it. Recommended only on powerful hardware (Apple Silicon or an NVIDIA GPU).<br><br><b>Groq</b> processes the dictation on a private cloud API that doesn't store your audio or use it for training — fast on any computer.</span></span></b>
+      <div><b>Engine<span class="help">?<span class="tip"><b>Local</b><br>Runs everything on this computer, your audio never leaves it. Recommended only on powerful hardware (Apple Silicon or an NVIDIA GPU).<br><br><b>Groq</b><br>Processes the dictation on a private cloud API that doesn't store your audio or use it for data training. Fast on any computer.</span></span></b>
       <small>Both are private · Local needs powerful hardware</small></div>
     </div>
     <div class="seg" id="engine" style="flex-wrap:nowrap"></div>
@@ -379,30 +410,39 @@
 </h2>
 <div class="collapse" id="histwrap"><div><div class="card" id="history"></div></div></div>
 
-<h2 style="cursor:default"><span>How your data stays private</span></h2>
+<div id="privbox">
+<h2 id="privtitle" style="cursor:default"><span class="hleft"><span class="ic sm qic">?</span> How your data stays private</span></h2>
+<p id="privintro">Orac Voice works as a two-step system. Here's how it works:</p>
 <div id="privacy">
-  <div class="stepcard"><span class="n">01</span>
-    <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg></div>
-    <b>Speech to text</b>
-    <small>Turns your voice into raw text. On <em>Local</em>, Whisper runs on this computer and your audio never leaves it. On <em>Groq</em>, the audio travels over an encrypted connection to Groq's API, which doesn't store it and doesn't use it for training.</small>
+  <div class="acc">
+    <div class="accbar">
+      <span class="hleft"><span class="accnum">01</span><span class="ic sm"><svg viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg></span> Turning your voice into text</span>
+      <span class="chev">▼</span>
+    </div>
+    <div class="collapse closed"><div><p class="accbody">Whisper, the transcription engine, listens to your recording and writes down exactly what you said. On <em>Local</em> it runs on this computer and your audio never leaves it. On <em>Groq</em> the audio travels over an encrypted connection to Groq's API, which doesn't store it and doesn't use it for data training.</p></div></div>
   </div>
-  <div class="stepcard"><span class="n">02</span>
-    <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/></svg></div>
-    <b>The cleaner</b>
-    <small>A small LLM removes filler words ("um", "o sea") and fixes punctuation and capitalization — nothing else. On <em>Local</em> it's Ollama, a free open-source model on this computer; on <em>Groq</em> it's Llama on the same private API. If it ever tries to change your words, the raw transcript is pasted instead.</small>
+  <div class="acc">
+    <div class="accbar">
+      <span class="hleft"><span class="accnum">02</span><span class="ic sm"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/></svg></span> Cleaning up the text</span>
+      <span class="chev">▼</span>
+    </div>
+    <div class="collapse closed"><div><p class="accbody">A small LLM removes filler words ("um", "o sea") and fixes punctuation and capitalization, nothing else. On <em>Local</em> it's Ollama, a free open-source model on this computer; on <em>Groq</em> it's Llama on the same private API. A safety check makes sure it never changes your words: if it tries, you get your exact original transcription instead.</p></div></div>
   </div>
-  <div class="stepcard"><span class="n">03</span>
-    <div class="ic"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
-    <b>What stays here</b>
-    <small>Your dictation history and custom dictionary are plain files on this computer. They're never uploaded anywhere, and "Clear all" wipes the history whenever you want.</small>
+  <div class="acc">
+    <div class="accbar">
+      <span class="hleft"><span class="accnum">03</span><span class="ic sm"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span> What stays here</span>
+      <span class="chev">▼</span>
+    </div>
+    <div class="collapse closed"><div><p class="accbody">Your dictation history and custom dictionary are plain files on this computer. They're never uploaded anywhere, and "Clear all" wipes the history whenever you want.</p></div></div>
   </div>
+</div>
 </div>
 
 <div id="welcome-overlay" class="overlay">
   <div class="modal">
     <div class="ic" style="margin:0 auto 14px"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/></svg></div>
     <h3>Orac Voice is running</h3>
-    <p>Click any text field, hold <b class="hk-label" style="color:var(--lime)">your key</b> and speak — release it and the clean text pastes itself.<br>
+    <p>Click any text field, hold <b class="hk-label" style="color:var(--lime)">your key</b> and speak. Release it and the clean text pastes itself.<br>
     Double-tap for hands-free · Esc cancels.<br><br>
     This page is your settings: engine, key, microphone, dictionary and history.</p>
     <div class="modal-btns">
@@ -609,6 +649,20 @@ histbar.onclick = () => {
   histwrap.classList.toggle("closed", closed);
   localStorage.histClosed = closed ? "1" : "0";
 };
+document.querySelectorAll(".acc .accbar").forEach(bar => {
+  bar.onclick = () => {
+    const acc = bar.parentElement;
+    const wasOpen = acc.classList.contains("open");
+    document.querySelectorAll(".acc").forEach(a => {   // accordion: one open
+      a.classList.remove("open");
+      a.querySelector(".collapse").classList.add("closed");
+    });
+    if (!wasOpen) {
+      acc.classList.add("open");
+      acc.querySelector(".collapse").classList.remove("closed");
+    }
+  };
+});
 const wov = document.getElementById("welcome-overlay");
 if (new URLSearchParams(location.search).has("welcome")) wov.classList.add("show");
 document.getElementById("welcome-ok").onclick = () => {

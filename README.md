@@ -1,6 +1,6 @@
 # Orac Voice
 
-**Local-first, private push-to-talk dictation** for macOS and Windows. Hold a key, speak, release: clean text is pasted right where your cursor is. By default everything runs 100% local: no cloud, no subscription, your voice never leaves your machine. An optional cloud mode (`"provider": "groq"` in config.json) trades that guarantee for speed on weak hardware — see the install guides.
+**Local-first, private push-to-talk dictation** for macOS and Windows. Hold a key, speak, release: clean text is pasted right where your cursor is. By default everything runs 100% local: no cloud, no subscription, your voice never leaves your machine. An optional cloud mode (`"provider": "groq"` in config.json) trades that guarantee for speed on weak hardware (see the install guides).
 
 **Pipeline:** mic → whisper.cpp (local transcription) → Ollama llama3.2:3b (removes filler words only) → clipboard + automatic paste. With `provider: groq`, transcription and cleanup run on Groq's API instead (your audio leaves the machine; the free tier covers heavy daily dictation).
 
@@ -45,7 +45,7 @@ On Mac: menu bar 🎙 → Settings & History. On Windows: double-click the launc
 - **Engine**: Local (private, on-device) or Groq (cloud API, needs `groq_key.txt`). Switches live, no restart.
 - **Dictionary**: your custom words (acronyms, brands, names). Type → Record → say it once.
 - **History**: collapsible, per-item copy/delete, Clear all with confirmation.
-- **Quit**: button at the bottom of the page.
+- **Quit**: red button at the top right of the page.
 
 ## The log (one line per dictation)
 
