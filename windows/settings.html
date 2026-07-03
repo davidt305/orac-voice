@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orac Voice</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23ccff00'/%3E%3C/svg%3E">
+<style>
+  @font-face {
+    font-family: "Poppins";
+    src: url("/fonts/Poppins-SemiBold.ttf") format("truetype");
+    font-weight: 600;
+  }
+  @font-face {
+    font-family: "Inter";
+    src: url("/fonts/Inter-Medium.ttf") format("truetype");
+  }
+  @font-face {
+    font-family: "Fraunces";
+    src: url("/fonts/Fraunces-Italic.ttf") format("truetype");
+    font-style: italic;
+  }
+  :root {
+    --bg: #0a0a0a; --card: #141414; --line: #232323;
+    --txt: #f2f2f2; --dim: #8a8a8a; --lime: #ccff00; --ink: #0a0a0a;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--txt);
+    font: 15px/1.5 "Inter", -apple-system, system-ui, sans-serif;
+    max-width: 680px; margin: 0 auto; padding: 40px 20px 80px;
+  }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  header svg { width: 34px; height: 34px; flex: none; }
+  h1 {
+    font: 600 32px "Poppins", -apple-system, sans-serif;
+    letter-spacing: -.01em; text-transform: uppercase; color: var(--lime);
+  }
+  h1 .voice { color: #fff; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 16px; padding: 6px 20px; margin-bottom: 20px;
+  }
+  .row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line);
+  }
+  .row:last-child { border-bottom: none; }
+  .row .label { display: flex; align-items: center; gap: 13px; }
+  .row .label b { display: block; font-size: 15px; font-weight: 600; }
+  .row .label small { color: var(--dim); font-size: 13px; }
+  .ic {
+    width: 36px; height: 36px; border-radius: 10px; flex: none;
+    background: rgba(204, 255, 0, .08); border: 1px solid rgba(204, 255, 0, .18);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ic svg {
+    width: 17px; height: 17px; stroke: var(--lime); fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .ic.sm { width: 28px; height: 28px; border-radius: 8px; }
+  .ic.sm svg { width: 14px; height: 14px; }
+  select {
+    background: #262626; color: var(--txt); border: 1px solid #383838;
+    border-radius: 10px; padding: 8px 12px; font: inherit; font-size: 14px;
+    max-width: 280px; cursor: pointer; outline: none;
+    box-shadow: 0 3px 0 #000;
+  }
+  select:hover { border-color: rgba(204, 255, 0, .4); transform: translateY(-2px); }
+  select { transition: all .2s; }
+  select:focus { border-color: var(--lime); }
+  .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+  .seg button {
+    background: #262626; color: var(--txt); border: 1px solid #383838;
+    border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 13px;
+    cursor: pointer; transition: all .15s;
+    box-shadow: 0 3px 0 #000;  /* relieve pushable */
+  }
+  .seg button:hover { border-color: rgba(204, 255, 0, .4); transform: translateY(-2px); }
+  .seg button:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+  .seg button.on {
+    background: var(--lime); color: var(--ink); border-color: var(--lime);
+    font-weight: 700;
+    box-shadow: 0 3px 0 #7f9e00, 0 0 12px rgba(204,255,0,.3);
+  }
+  .seg button.on:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #7f9e00, 0 0 12px rgba(204,255,0,.3);
+  }
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 3px 0 #7f9e00, 0 0 8px rgba(204, 255, 0, .2); }
+    50% { box-shadow: 0 3px 0 #7f9e00, 0 0 24px rgba(204, 255, 0, .65); }
+  }
+  .seg button.pulse { animation: pulseGlow 2.2s ease-in-out infinite; }
+  #dictword {
+    background: #262626; color: var(--txt); border: 1px solid #383838;
+    border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 13px;
+    width: 140px; outline: none; box-shadow: 0 3px 0 #000; transition: all .2s;
+  }
+  #dictword:focus { border-color: var(--lime); }
+  #dictrec { white-space: nowrap; }
+  #dictword::placeholder { color: #5a5a5a; }
+  .dictword { color: var(--lime); font-weight: 700; font-size: 14px; }
+  .dictspoken { color: var(--dim); font-size: 13px; }
+  h2 {
+    font-size: 13px; font-weight: 600; color: var(--dim);
+    text-transform: uppercase; letter-spacing: .08em; margin: 28px 0 10px 4px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  h2 button {
+    background: #262626; border: 1px solid #383838; color: var(--dim);
+    border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+    text-transform: none; letter-spacing: 0;
+    box-shadow: 0 2px 0 #000; transition: all .15s;
+  }
+  h2 button:hover { color: #ff6b6b; border-color: #ff6b6b; transform: translateY(-2px); }
+  h2 button:active { transform: translateY(2px); box-shadow: 0 0 0 #000; }
+  #histbar {
+    cursor: pointer; user-select: none;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 16px; margin: 28px 0 10px;
+    transition: border-color .25s;
+  }
+  #histbar:hover { border-color: rgba(204, 255, 0, .45); }
+  #histbar .hleft, #histbar .hright { display: flex; align-items: center; gap: 10px; }
+  #histbar .chev {
+    display: inline-block; color: var(--lime); font-size: 11px;
+    transition: transform .35s cubic-bezier(.4, 0, .2, 1);
+    text-shadow: 0 0 6px rgba(204, 255, 0, .6);
+    transform: rotate(180deg);  /* abierto: apunta hacia arriba (colapsar) */
+  }
+  #histbar.closed .chev { transform: rotate(0deg); }  /* cerrado: expandir ↓ */
+  #histcount { color: var(--lime); font-weight: 700; margin-left: 2px; }
+  .collapse {
+    display: grid; grid-template-rows: 1fr;
+    transition: grid-template-rows .45s cubic-bezier(.4, 0, .2, 1);
+  }
+  .collapse.closed { grid-template-rows: 0fr; }
+  .collapse > div { overflow: hidden; }
+  .collapse .card {
+    transition: opacity .3s ease, transform .4s cubic-bezier(.4, 0, .2, 1);
+  }
+  .collapse.closed .card { opacity: 0; transform: translateY(-10px); }
+  .item { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .item:last-child { border-bottom: none; }
+  .item .meta {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
+  }
+  .item time {
+    color: var(--lime); font: 500 12px "Inter", sans-serif; opacity: .9;
+  }
+  .item .acts { display: flex; gap: 6px; }
+  .item .acts button {
+    background: none; border: none; color: var(--dim); cursor: pointer;
+    font-size: 14px; padding: 2px 6px; border-radius: 6px;
+  }
+  .item .acts button:hover { color: var(--txt); background: #1f1f1f; }
+  .item p { color: #d6d6d6; font-size: 14px; word-wrap: break-word; }
+  .empty { color: var(--dim); text-align: center; padding: 30px 0; font-size: 14px; }
+  #badges {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin: 0 0 26px 38px;
+  }
+  .badge {
+    display: flex; align-items: center; gap: 6px;
+    font: 500 11px "Inter", sans-serif; color: var(--dim);
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 999px; padding: 5px 12px;
+  }
+  .badge i {
+    width: 5px; height: 5px; border-radius: 50%; background: var(--lime);
+    box-shadow: 0 0 5px var(--lime);
+  }
+  #howto {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 640px) { #howto { grid-template-columns: repeat(2, 1fr); } }
+  .stepcard {
+    position: relative; background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 16px 14px 14px;
+    display: flex; flex-direction: column; gap: 10px;
+    transition: border-color .25s, transform .25s;
+  }
+  .stepcard:hover { border-color: rgba(204, 255, 0, .4); transform: translateY(-3px); }
+  .stepcard .n {
+    position: absolute; top: 10px; right: 12px;
+    font: 700 11px "Inter", sans-serif; color: var(--lime);
+    opacity: .55;
+  }
+  .stepcard b { font-size: 13.5px; font-weight: 700; line-height: 1.3; }
+  .stepcard em { color: var(--lime); font-style: normal; }
+  .stepcard small { color: var(--dim); font-size: 12px; line-height: 1.45; }
+  #tagline {
+    text-align: center; color: var(--lime); opacity: .8;
+    font: 500 12px "Inter", sans-serif; margin-top: 30px;
+  }
+  #modal-overlay {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .6);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 10;
+  }
+  #modal-overlay.show { opacity: 1; pointer-events: auto; }
+  #modal {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 26px 28px; max-width: 380px; margin: 20px; text-align: center;
+    transform: translateY(12px) scale(.97); transition: transform .3s cubic-bezier(.4, 0, .2, 1);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+  }
+  #modal-overlay.show #modal { transform: none; }
+  #modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  #modal p { color: var(--dim); font-size: 13.5px; margin-bottom: 20px; }
+  .modal-btns { display: flex; gap: 10px; justify-content: center; }
+  .modal-btns button {
+    font: 600 13.5px inherit; font-family: inherit; border-radius: 999px;
+    padding: 9px 20px; cursor: pointer; transition: all .15s;
+  }
+  .btn-ghost {
+    background: #262626; color: var(--txt); border: 1px solid #383838;
+    box-shadow: 0 3px 0 #000;
+  }
+  .btn-ghost:hover { border-color: #4a4a4a; }
+  .btn-ghost:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+  .btn-danger {
+    background: #e5484d; color: #fff; border: 1px solid #e5484d;
+    box-shadow: 0 3px 0 #8f2327;
+  }
+  .btn-danger:hover { background: #f2555a; box-shadow: 0 3px 0 #8f2327, 0 0 14px rgba(229, 72, 77, .4); }
+  .btn-danger:active { transform: translateY(2px); box-shadow: 0 1px 0 #8f2327; }
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--lime); color: var(--ink); font-weight: 700; font-size: 13px;
+    padding: 9px 18px; border-radius: 999px; transition: transform .25s;
+    box-shadow: 0 0 20px rgba(204,255,0,.4);
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<header>
+  <svg viewBox="0 0 100 100" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round">
+    <rect x="38" y="18" width="24" height="42" rx="12" fill="#fff" stroke="none"/>
+    <path d="M 24 50 a 26 26 0 0 0 52 0" />
+    <line x1="50" y1="76" x2="50" y2="88" />
+    <line x1="36" y1="88" x2="64" y2="88" />
+  </svg>
+  <h1>Orac<span class="voice">Voice</span></h1>
+</header>
+<div id="badges"></div>
+
+<div class="card">
+  <div class="row">
+    <div class="label">
+      <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M9 15.5h6"/></svg></div>
+      <div><b>Dictation key</b>
+      <small>Pick your key to bind: click the button and press any modifier key</small></div>
+    </div>
+    <div class="seg" id="hotkey"></div>
+  </div>
+  <div class="row">
+    <div class="label">
+      <div class="ic"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/></svg></div>
+      <div><b>Microphone</b><small>Audio input</small></div>
+    </div>
+    <select id="mic"></select>
+  </div>
+  <div class="row">
+    <div class="label">
+      <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+      <div><b>Language</b><small>Dictation detection</small></div>
+    </div>
+    <div class="seg" id="langs"></div>
+  </div>
+</div>
+
+<h2 style="cursor:default"><span>Dictionary</span></h2>
+<div class="card">
+  <div class="row">
+    <div class="label">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+      <div><b>Custom words</b>
+      <small>Type a word as it should be typed, click Record and say it once</small></div>
+    </div>
+    <div class="seg" style="flex-wrap:nowrap"><input id="dictword" placeholder="e.g. n8n" maxlength="40"><button id="dictrec">● Record</button></div>
+  </div>
+  <div id="dictlist"></div>
+</div>
+
+<h2 style="cursor:default"><span>How to use</span></h2>
+<div id="howto">
+  <div class="stepcard"><span class="n">01</span>
+    <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 4l7.5 17 2.3-7.2L21 11.5z"/></svg></div>
+    <b>Click a text field</b>
+    <small>Notes, Claude, Codex, Emails, Chats, anywhere your cursor blinks.</small>
+  </div>
+  <div class="stepcard"><span class="n">02</span>
+    <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M9 15.5h6"/></svg></div>
+    <b>Hold <em class="hk-label">Right Ctrl</em> &amp; speak</b>
+    <small>Release the key when you're done talking.</small>
+  </div>
+  <div class="stepcard"><span class="n">03</span>
+    <div class="ic"><svg viewBox="0 0 24 24"><path d="M5 7V4h14v3M12 4v16M9 20h6"/></svg></div>
+    <b>Text appears</b>
+    <small>Typed at your cursor: cleaned, punctuated, no fillers.</small>
+  </div>
+  <div class="stepcard"><span class="n">04</span>
+    <div class="ic"><svg viewBox="0 0 24 24"><path d="M8 21v-3.4L4.9 12.5a1.6 1.6 0 0 1 2.8-1.6l1.2 2.1V5.5a1.5 1.5 0 0 1 3 0V12M16 21v-3.4l3.1-5.1a1.6 1.6 0 0 0-2.8-1.6l-1.2 2.1V5.5a1.5 1.5 0 0 0-3 0V12"/></svg></div>
+    <b>Hands-free</b>
+    <small>Double-tap <em class="hk-label">Right Ctrl</em> to start · tap once to finish · Esc cancels.</small>
+  </div>
+</div>
+
+<h2 id="histbar">
+  <span class="hleft">
+    <span class="ic sm"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8M3 3v5h5M12 7v5l4 2"/></svg></span>
+    History <span id="histcount"></span>
+  </span>
+  <span class="hright"><button id="clear">Clear all</button><span class="chev">▼</span></span>
+</h2>
+<div class="collapse" id="histwrap"><div><div class="card" id="history"></div></div></div>
+
+<p id="tagline">100% Local, 100% Private</p>
+
+<div id="modal-overlay">
+  <div id="modal">
+    <h3>Delete all history?</h3>
+    <p>This will permanently delete all your dictations from this Mac.<br>This can't be undone.</p>
+    <div class="modal-btns">
+      <button class="btn-ghost" id="modal-cancel">Go back</button>
+      <button class="btn-danger" id="modal-confirm">Delete all</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast">Saved</div>
+
+<script>
+const LANGS = {auto: "Auto", es: "Español", en: "English"};
+let state = null;
+let capturing = false, capPoll = null;
+const firstVisit = !localStorage.oracSeen;   // glow de onboarding solo la 1ª vez
+localStorage.oracSeen = "1";
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 1600);
+}
+async function api(path, body) {
+  const r = await fetch(path, body ? {method: "POST", body: JSON.stringify(body)} : {});
+  if (!r.ok) { toast(await r.text()); throw 0; }
+  return r.json();
+}
+function seg(el, opts, current, key) {
+  el.innerHTML = "";
+  for (const [val, label] of Object.entries(opts)) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.className = val === current ? "on" : "";
+    b.onclick = async () => { await api("/api/config", {[key]: val}); toast("Saved"); load(); };
+    el.appendChild(b);
+  }
+}
+function renderHotkey() {
+  const el = document.getElementById("hotkey");
+  const sig = capturing ? "capturing" : state.config.hotkey.label;
+  if (el.dataset.sig === sig) return;  // sin cambios: no reconstruir (el glow no se reinicia)
+  el.dataset.sig = sig;
+  el.innerHTML = "";
+  const mk = (label, cls, fn) => {
+    const b = document.createElement("button");
+    b.textContent = label; b.className = cls; b.onclick = fn;
+    el.appendChild(b); return b;
+  };
+  if (capturing) {
+    const b = mk("Press any modifier key… (Esc cancels)", "on pulse", stopCapture);
+    b.style.opacity = ".9";
+  } else {
+    const b = mk(state.config.hotkey.label,
+                 firstVisit ? "on pulse" : "on", startCapture);
+    b.title = "Click to change the key";
+  }
+}
+async function startCapture() {
+  await api("/api/capture/start", {});
+  capturing = true; render();
+  capPoll = setInterval(async () => {
+    const c = await api("/api/capture");
+    if (c.result) {                       // tecla detectada -> guardar al tiro
+      clearInterval(capPoll); capturing = false;
+      await api("/api/config", {hotkey: c.result});
+      toast(`Saved: ${c.result.label}`); load();
+    } else if (!c.active) {               // cancelada (Esc) desde el daemon
+      clearInterval(capPoll); capturing = false; render();
+    }
+  }, 300);
+  setTimeout(() => { if (capturing) stopCapture(); }, 12000);
+}
+async function stopCapture() {
+  clearInterval(capPoll);
+  await api("/api/capture/cancel", {});
+  capturing = false; render();
+}
+function render() {
+  renderHotkey();
+  document.querySelectorAll(".hk-label").forEach(
+    el => el.textContent = state.config.hotkey.label);
+  seg(document.getElementById("langs"), LANGS, state.config.language, "language");
+  const mic = document.getElementById("mic");
+  mic.innerHTML = '<option value="">Auto (system default)</option>';
+  for (const name of state.mics) {
+    const o = document.createElement("option");
+    o.value = o.textContent = name;
+    if (name === state.config.mic) o.selected = true;
+    mic.appendChild(o);
+  }
+  const h = document.getElementById("history");
+  document.getElementById("histcount").textContent = state.history.length || "";
+  h.innerHTML = "";
+  if (!state.history.length) h.innerHTML = '<div class="empty">No dictations yet</div>';
+  for (const it of state.history) {
+    const d = new Date(it.ts * 1000);
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `<div class="meta"><time>${d.toLocaleDateString("en-US", {day: "2-digit", month: "short"})} · ${d.toLocaleTimeString("en-US", {hour: "2-digit", minute: "2-digit"})}</time>
+      <div class="acts"><button title="Copy">⧉</button><button title="Delete">✕</button></div></div><p></p>`;
+    div.querySelector("p").textContent = it.text;
+    const [copy, del] = div.querySelectorAll(".acts button");
+    copy.onclick = () => { navigator.clipboard.writeText(it.text); toast("Copied"); };
+    del.onclick = async () => { await api("/api/history/delete", {ts: it.ts}); load(); };
+    h.appendChild(div);
+  }
+  const dl = document.getElementById("dictlist");
+  dl.innerHTML = "";
+  const dict = state.dictionary || [];
+  if (!dict.length) dl.innerHTML = '<div class="empty">No custom words yet</div>';
+  for (const e of dict) {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `<div class="meta"><span class="dictword"></span>
+      <div class="acts"><button title="Delete">✕</button></div></div><p class="dictspoken"></p>`;
+    div.querySelector(".dictword").textContent = e.written;
+    div.querySelector(".dictspoken").textContent =
+      "sounds like: " + e.spoken.map(s => `“${s}”`).join(" · ");
+    div.querySelector(".acts button").onclick = async () => {
+      await api("/api/dict/delete", {written: e.written}); load();
+    };
+    dl.appendChild(div);
+  }
+  const f = document.getElementById("badges");
+  f.innerHTML = "";
+  const a = state.about || {};
+  for (const txt of [`Orac Voice v${a.version}`, `Whisper · ${a.whisper}`, `Ollama · ${a.ollama}`]) {
+    const b = document.createElement("div");
+    b.className = "badge";
+    b.innerHTML = "<i></i>";
+    b.append(txt);
+    f.appendChild(b);
+  }
+}
+async function load() { state = await api("/api/state"); render(); }
+document.getElementById("mic").onchange = async e => {
+  await api("/api/config", {mic: e.target.value}); toast("Saved"); load();
+};
+const overlay = document.getElementById("modal-overlay");
+document.getElementById("clear").onclick = e => {
+  e.stopPropagation();
+  overlay.classList.add("show");
+};
+document.getElementById("modal-cancel").onclick = () => overlay.classList.remove("show");
+overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove("show"); };
+document.getElementById("modal-confirm").onclick = async () => {
+  overlay.classList.remove("show");
+  await api("/api/history/clear", {}); load(); toast("History cleared");
+};
+const dictBtn = document.getElementById("dictrec");
+dictBtn.onclick = async () => {
+  const w = document.getElementById("dictword").value.trim();
+  if (!w) { toast("Type the word first"); return; }
+  dictBtn.disabled = true;
+  dictBtn.classList.add("on", "pulse");
+  dictBtn.textContent = "Listening…";
+  try {
+    const r = await api("/api/dict/record", {written: w});
+    toast(`Saved: “${r.spoken}” → ${w}`);
+    document.getElementById("dictword").value = "";
+    load();
+  } catch (e) {
+  } finally {
+    dictBtn.disabled = false;
+    dictBtn.classList.remove("on", "pulse");
+    dictBtn.textContent = "● Record";
+  }
+};
+document.getElementById("dictword").addEventListener("keydown", e => {
+  if (e.key === "Enter") dictBtn.click();
+});
+const histbar = document.getElementById("histbar");
+const histwrap = document.getElementById("histwrap");
+if (localStorage.histClosed === "1") {
+  histbar.classList.add("closed"); histwrap.classList.add("closed");
+}
+histbar.onclick = () => {
+  const closed = histbar.classList.toggle("closed");
+  histwrap.classList.toggle("closed", closed);
+  localStorage.histClosed = closed ? "1" : "0";
+};
+load();
+setInterval(load, 5000);
+</script>
+</body>
+</html>

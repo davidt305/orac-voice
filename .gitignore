@@ -1,0 +1,15 @@
+models/*
+!models/.gitkeep
+.venv/
+.tmp/
+*.wav
+*.aiff
+!windows/test-audio.wav
+screenshots/
+whisper-bin/
+windows/models/*
+!windows/models/.gitkeep
+history.jsonl
+dictionary.json
+__pycache__/
+.DS_Store
