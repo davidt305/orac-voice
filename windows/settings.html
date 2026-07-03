@@ -87,6 +87,22 @@
     50% { box-shadow: 0 3px 0 #7f9e00, 0 0 24px rgba(204, 255, 0, .65); }
   }
   .seg button.pulse { animation: pulseGlow 2.2s ease-in-out infinite; }
+  .switch {
+    position: relative; width: 52px; height: 30px; border-radius: 999px;
+    background: #262626; border: 1px solid #383838; cursor: pointer;
+    transition: all .2s; flex: none; box-shadow: 0 3px 0 #000;
+  }
+  .switch::after {
+    content: ""; position: absolute; top: 3px; left: 3px;
+    width: 22px; height: 22px; border-radius: 50%; background: #8a8a8a;
+    transition: all .2s;
+  }
+  .switch:hover { transform: translateY(-1px); border-color: rgba(204, 255, 0, .4); }
+  .switch.on {
+    background: var(--lime); border-color: var(--lime);
+    box-shadow: 0 3px 0 #7f9e00, 0 0 12px rgba(204, 255, 0, .3);
+  }
+  .switch.on::after { left: 25px; background: var(--ink); }
   .recdot { color: #ff153f; }
   #dictword {
     background: #262626; color: var(--txt); border: 1px solid #383838;
@@ -269,7 +285,7 @@
       <div><b>Microphone access</b>
       <small>Off releases the mic (no "in use" indicator) · dictation pauses until you turn it back on</small></div>
     </div>
-    <div class="seg" id="micen"></div>
+    <div class="switch" id="micen" title="Microphone on/off"></div>
   </div>
   <div class="row">
     <div class="label">
@@ -438,8 +454,13 @@ function render() {
   seg(document.getElementById("langs"), LANGS, state.config.language, "language");
   seg(document.getElementById("engine"), {local: "Local", groq: "Groq"},
       state.config.provider, "provider");
-  seg(document.getElementById("micen"), {on: "On", off: "Off"},
-      state.config.mic_enabled ? "on" : "off", "mic_enabled");
+  const micen = document.getElementById("micen");
+  micen.classList.toggle("on", !!state.config.mic_enabled);
+  micen.onclick = async () => {
+    const turningOff = state.config.mic_enabled;
+    await api("/api/config", {mic_enabled: turningOff ? "off" : "on"});
+    toast(turningOff ? "Microphone off" : "Microphone on"); load();
+  };
   const mic = document.getElementById("mic");
   mic.innerHTML = '<option value="">Auto (system default)</option>';
   for (const name of state.mics) {
