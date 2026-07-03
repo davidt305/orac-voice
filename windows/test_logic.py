@@ -1,13 +1,13 @@
-"""Self-test de lógica de Orac Voice Windows. Corre en cualquier OS, sin audio
-ni pynput: stubbea winsound, levanta la API en el puerto 8099 y ejercita la
-máquina de estados, la captura de tecla y los endpoints.
+"""Orac Voice Windows logic self-test. Runs on any OS, without audio or
+pynput: stubs winsound, starts the API on port 8099 and exercises the
+state machine, the key capture and the endpoints.
 
-SEGURO PARA MÁQUINAS EN USO: respalda config.json, history.jsonl y
-dictionary.json a *.bak antes de partir y los restaura al final, pase lo que
-pase. Si el proceso muere a la mitad, los .bak quedan en disco para
-recuperarlos a mano.
+SAFE FOR MACHINES IN USE: backs up config.json, history.jsonl and
+dictionary.json to *.bak before starting and restores them at the end, no
+matter what. If the process dies midway, the .bak files stay on disk for
+manual recovery.
 
-Uso: python test_logic.py  (debe terminar con "TODO OK")
+Usage: python test_logic.py  (must end with "ALL OK")
 """
 import json
 import sys
@@ -23,12 +23,12 @@ sys.modules.setdefault("winsound", types.SimpleNamespace(
 
 import flow
 
-flow.UI_PORT = 8099                 # no chocar con una app viva en 8091
-flow.play_sound = lambda *a: None   # sin audio
-flow.warm_ollama = lambda: None     # sin red
+flow.UI_PORT = 8099                 # don't collide with a live app on 8091
+flow.play_sound = lambda *a: None   # no audio
+flow.warm_ollama = lambda: None     # no network
 flow.set_clipboard = lambda t: None
 
-# --- resguardo: el test toca los archivos reales, así que primero .bak
+# --- safeguard: the test touches the real files, so .bak first
 _DATA = [HERE / "config.json", flow.HISTORY_FILE, flow.DICT_FILE]
 for p in _DATA:
     if p.exists():
@@ -48,7 +48,7 @@ def _restore():
 def wait_idle(timeout=3.0):
     t0 = time.monotonic()
     while flow._state != flow.IDLE:
-        assert time.monotonic() - t0 < timeout, "no volvió a IDLE"
+        assert time.monotonic() - t0 < timeout, "did not return to IDLE"
         time.sleep(0.05)
 
 
@@ -60,17 +60,17 @@ def api(path, body=None):
 
 
 try:
-    orig_key = flow.CFG["hotkey"]["key"]     # respetar el binding del usuario
+    orig_key = flow.CFG["hotkey"]["key"]     # respect the user's binding
     other = "shift_r" if orig_key != "shift_r" else "alt_l"
 
-    # --- 1. hold: down + soltar tras >= double_tap_ms -> procesa y a IDLE
+    # --- 1. hold: down + release after >= double_tap_ms -> processes, back to IDLE
     flow.on_fn_down()
     assert flow._state == flow.RECORDING
-    flow._t_down = time.monotonic() - 0.5    # simula 0.5s de tecla abajo
+    flow._t_down = time.monotonic() - 0.5    # simulates 0.5s of key held down
     flow.on_fn_up()
     wait_idle()
 
-    # --- 2. doble-tap manos libres: down/up corto, down (ON), down (procesa)
+    # --- 2. hands-free double-tap: short down/up, down (ON), down (processes)
     flow.on_fn_down()
     flow.on_fn_up()
     assert flow._state == flow.MAYBE_HANDSFREE
@@ -79,13 +79,13 @@ try:
     flow.on_fn_down()
     wait_idle()
 
-    # --- 3. Escape cancela un dictado en curso
+    # --- 3. Escape cancels an in-progress dictation
     flow.on_fn_down()
     assert flow._state == flow.RECORDING
     flow.cancel_dictation()
     assert flow._state == flow.IDLE
 
-    # --- 4. _on_key: guard de auto-repeat (Windows repite el keydown)
+    # --- 4. _on_key: auto-repeat guard (Windows repeats the keydown)
     downs = []
     for _ in range(5):
         flow._on_key(orig_key, True, lambda: downs.append(1), lambda: None)
@@ -93,14 +93,14 @@ try:
     assert downs == [1, "up"], downs
     wait_idle()
 
-    # --- 5. captura: mientras captura no se dicta, y devuelve la tecla
+    # --- 5. capture: no dictation while capturing, and it returns the key
     flow._capture["active"] = True
     flow._on_key(other, True, lambda: downs.append("no!"), lambda: None)
     assert flow._capture["result"] == {"key": other,
                                        "label": flow.CAPTURE_KEYS[other]}
     assert flow._state == flow.IDLE and "no!" not in downs
 
-    # --- 6. API local
+    # --- 6. local API
     flow.start_ui_server()
     st = api("/api/state")
     assert st["config"]["hotkey"]["key"] == orig_key
@@ -108,7 +108,7 @@ try:
 
     api("/api/config", {"hotkey": {"key": other}})
     assert flow._watch[0] == other
-    api("/api/config", {"hotkey": {"key": orig_key}})   # de vuelta al del usuario
+    api("/api/config", {"hotkey": {"key": orig_key}})   # back to the user's key
     assert flow._watch[0] == orig_key
 
     api("/api/capture/start", {})
@@ -116,14 +116,14 @@ try:
     flow._on_key(other, True, lambda: None, lambda: None)
     assert api("/api/capture")["result"]["key"] == other
 
-    flow.history_append("prueba QC")
-    assert api("/api/state")["history"][0]["text"] == "prueba QC"
+    flow.history_append("QC test")
+    assert api("/api/state")["history"][0]["text"] == "QC test"
     api("/api/history/clear", {})
     assert api("/api/state")["history"] == []
 
-    api("/api/dict/delete", {"written": "palabra-que-no-existe"})
+    api("/api/dict/delete", {"written": "word-that-does-not-exist"})
     assert isinstance(api("/api/state")["dictionary"], list)
 
-    print("TODO OK: máquina de estados, hotkey, captura y API")
+    print("ALL OK: state machine, hotkey, capture and API")
 finally:
     _restore()

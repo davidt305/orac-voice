@@ -69,7 +69,7 @@
     background: #262626; color: var(--txt); border: 1px solid #383838;
     border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 13px;
     cursor: pointer; transition: all .15s;
-    box-shadow: 0 3px 0 #000;  /* relieve pushable */
+    box-shadow: 0 3px 0 #000;  /* pushable relief */
   }
   .seg button:hover { border-color: rgba(204, 255, 0, .4); transform: translateY(-2px); }
   .seg button:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
@@ -122,9 +122,9 @@
     display: inline-block; color: var(--lime); font-size: 11px;
     transition: transform .35s cubic-bezier(.4, 0, .2, 1);
     text-shadow: 0 0 6px rgba(204, 255, 0, .6);
-    transform: rotate(180deg);  /* abierto: apunta hacia arriba (colapsar) */
+    transform: rotate(180deg);  /* open: points up (collapse) */
   }
-  #histbar.closed .chev { transform: rotate(0deg); }  /* cerrado: expandir ↓ */
+  #histbar.closed .chev { transform: rotate(0deg); }  /* closed: expand ↓ */
   #histcount { color: var(--lime); font-weight: 700; margin-left: 2px; }
   .collapse {
     display: grid; grid-template-rows: 1fr;
@@ -337,7 +337,7 @@
 const LANGS = {auto: "Auto", es: "Español", en: "English"};
 let state = null;
 let capturing = false, capPoll = null, capTimer = null;
-const firstVisit = !localStorage.oracSeen;   // glow de onboarding solo la 1ª vez
+const firstVisit = !localStorage.oracSeen;   // onboarding glow only on 1st visit
 localStorage.oracSeen = "1";
 
 function toast(msg) {
@@ -363,7 +363,7 @@ function seg(el, opts, current, key) {
 function renderHotkey() {
   const el = document.getElementById("hotkey");
   const sig = capturing ? "capturing" : state.config.hotkey.label;
-  if (el.dataset.sig === sig) return;  // sin cambios: no reconstruir (el glow no se reinicia)
+  if (el.dataset.sig === sig) return;  // unchanged: don't rebuild (the glow doesn't restart)
   el.dataset.sig = sig;
   el.innerHTML = "";
   const mk = (label, cls, fn) => {
@@ -385,11 +385,11 @@ async function startCapture() {
   capturing = true; render();
   capPoll = setInterval(async () => {
     const c = await api("/api/capture");
-    if (c.result) {                       // tecla detectada -> guardar al tiro
+    if (c.result) {                       // key detected -> save immediately
       clearInterval(capPoll); clearTimeout(capTimer); capturing = false;
       await api("/api/config", {hotkey: c.result});
       toast(`Saved: ${c.result.label}`); load();
-    } else if (!c.active) {               // cancelada (Esc) desde el daemon
+    } else if (!c.active) {               // cancelled (Esc) from the daemon
       clearInterval(capPoll); clearTimeout(capTimer); capturing = false; render();
     }
   }, 300);

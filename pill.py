@@ -1,8 +1,8 @@
-"""Pastilla flotante estilo Wispr Flow, paleta Higgsfield.
+"""Wispr Flow-style floating pill, Higgsfield palette.
 
-[X] [waveform / dots] [✓]: fondo #141414, outline lima #CCFF00 con glow.
-Panel non-activating: nunca roba el foco del app donde estás escribiendo.
-Thread-safe: show_*/hide se pueden llamar desde cualquier thread.
+[X] [waveform / dots] [✓]: #141414 background, lime #CCFF00 outline with glow.
+Non-activating panel: never steals focus from the app you're typing in.
+Thread-safe: show_*/hide can be called from any thread.
 """
 import math
 import time
@@ -19,7 +19,7 @@ from AppKit import (NSApplication, NSApplicationActivationPolicyAccessory,
 from Foundation import NSObject
 from PyObjCTools import AppHelper
 
-# Paleta Higgsfield
+# Higgsfield palette
 LIME = NSColor.colorWithSRGBRed_green_blue_alpha_(0.80, 1.0, 0.0, 1.0)   # CCFF00
 DARK = NSColor.colorWithSRGBRed_green_blue_alpha_(0.078, 0.078, 0.078, 0.97)  # 141414
 GRAY = NSColor.colorWithSRGBRed_green_blue_alpha_(0.18, 0.18, 0.18, 1.0)
@@ -27,7 +27,7 @@ WHITE = NSColor.whiteColor()
 INK = NSColor.colorWithSRGBRed_green_blue_alpha_(0.04, 0.04, 0.04, 1.0)
 
 W, H = 170, 36
-BTN_ZONE = 34          # ancho clickeable de cada extremo
+BTN_ZONE = 34          # clickable width at each end
 N_BARS, N_DOTS = 11, 8
 
 HIDDEN, RECORDING, PROCESSING = 0, 1, 2
@@ -46,7 +46,7 @@ class _PillView(NSView):
         return self
 
     def acceptsFirstMouse_(self, event):
-        return True  # el primer click actúa, sin activar la app
+        return True  # the first click acts, without activating the app
 
     def mouseDown_(self, event):
         x = self.convertPoint_fromView_(event.locationInWindow(), None).x
@@ -59,7 +59,7 @@ class _PillView(NSView):
         mode = self.pill.mode
         cy = H / 2.0
 
-        # cuerpo: rounded-full oscuro con outline lima + glow
+        # body: dark rounded-full with lime outline + glow
         body = NSBezierPath.bezierPathWithRoundedRect_xRadius_yRadius_(
             ((4, 4), (W - 8, H - 8)), (H - 8) / 2.0, (H - 8) / 2.0)
         DARK.setFill()
@@ -73,9 +73,9 @@ class _PillView(NSView):
         LIME.setStroke()
         body.setLineWidth_(1.7)
         body.stroke()
-        NSShadow.alloc().init().set()  # apagar la sombra para el resto
+        NSShadow.alloc().init().set()  # turn the shadow off for the rest
 
-        # botón X (izquierda): círculo gris, X blanca
+        # X button (left): gray circle, white X
         _fill_circle(20, cy, 10, GRAY)
         WHITE.setStroke()
         for dx, dy in ((1, 1), (1, -1)):
@@ -86,7 +86,7 @@ class _PillView(NSView):
             p.lineToPoint_((20 + 3.2 * dx, cy + 3.2 * dy))
             p.stroke()
 
-        # botón ✓ (derecha): círculo lima, check oscuro (CTA Higgsfield)
+        # ✓ button (right): lime circle, dark check (Higgsfield CTA)
         bx = W - 20
         _fill_circle(bx, cy, 10, LIME)
         INK.setStroke()
@@ -99,19 +99,19 @@ class _PillView(NSView):
         p.lineToPoint_((bx + 4.5, cy + 3.5))
         p.stroke()
 
-        # zona central
+        # center zone
         x0, x1 = BTN_ZONE + 4, W - BTN_ZONE - 4
         span = x1 - x0
         if mode == RECORDING:
-            targets = list(self.pill.levels)  # newest primero = barra izquierda
+            targets = list(self.pill.levels)  # newest first = leftmost bar
             disp = self.pill.display
             step = span / float(N_BARS)
             bw = 2.5
             for i in range(N_BARS):
                 tgt = targets[i] if i < len(targets) else 0.05
-                disp[i] += (tgt - disp[i]) * 0.35  # ease: persigue el objetivo
+                disp[i] += (tgt - disp[i]) * 0.35  # ease: chases the target
                 h = 3 + disp[i] * 14
-                # fade sutil hacia los bordes (más denso al centro = look premium)
+                # subtle fade toward the edges (denser center = premium look)
                 edge = 1.0 - 0.5 * abs(i - (N_BARS - 1) / 2) / ((N_BARS - 1) / 2)
                 bx_ = x0 + step * i + (step - bw) / 2
                 bar = NSBezierPath.bezierPathWithRoundedRect_xRadius_yRadius_(
@@ -128,12 +128,12 @@ class _PillView(NSView):
 
 
 class Pill:
-    """API thread-safe. on_cancel/on_confirm se llaman en el main thread."""
+    """Thread-safe API. on_cancel/on_confirm are called on the main thread."""
 
     def __init__(self, on_cancel=lambda: None, on_confirm=lambda: None):
         self.mode = HIDDEN
         self.levels = deque([0.05] * N_BARS, maxlen=N_BARS)
-        self.display = [0.05] * N_BARS  # alturas animadas (easing hacia levels)
+        self.display = [0.05] * N_BARS  # animated heights (easing toward levels)
         self.on_cancel = on_cancel
         self.on_confirm = on_confirm
         self._timer = None
@@ -144,7 +144,7 @@ class Pill:
             ((x, 70), (W, H)),
             NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel,
             NSBackingStoreBuffered, False)
-        panel.setLevel_(25)  # NSStatusWindowLevel: sobre todo
+        panel.setLevel_(25)  # NSStatusWindowLevel: above everything
         panel.setOpaque_(False)
         panel.setBackgroundColor_(NSColor.clearColor())
         panel.setHasShadow_(False)
@@ -156,9 +156,9 @@ class Pill:
         panel.setContentView_(self.view)
         self.panel = panel
 
-    # ---- llamables desde cualquier thread ----
+    # ---- callable from any thread ----
     def push_level(self, v):
-        # appendleft: lo nuevo entra por la izquierda y fluye hacia la derecha
+        # appendleft: new samples enter on the left and flow to the right
         self.levels.appendleft(max(0.03, min(1.0, v)))
 
     def show_recording(self):
@@ -187,7 +187,7 @@ class Pill:
 
 
 def make_app():
-    """NSApplication accessory (sin ícono en el Dock)."""
+    """Accessory NSApplication (no Dock icon)."""
     app = NSApplication.sharedApplication()
     app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
     return app
@@ -202,11 +202,11 @@ class _MenuTarget(NSObject):
         webbrowser.open("http://127.0.0.1:8091")
 
 
-_menubar_refs = []  # el status item muere si el GC lo recoge
+_menubar_refs = []  # the status item dies if the GC collects it
 
 
 def make_menubar():
-    """Ícono 🎙 en la barra de menú con estado y Salir."""
+    """🎙 menu bar icon with status and Quit."""
     item = NSStatusBar.systemStatusBar().statusItemWithLength_(
         NSVariableStatusItemLength)
     item.button().setTitle_("🎙")
@@ -231,7 +231,7 @@ def make_menubar():
 
 
 if __name__ == "__main__":
-    # demo standalone: grabando 4s (waveform falsa) -> procesando 2.5s -> fin
+    # standalone demo: recording 4s (fake waveform) -> processing 2.5s -> done
     import threading
 
     app = make_app()
