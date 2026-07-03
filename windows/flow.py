@@ -13,6 +13,7 @@ import array
 import atexit
 import io
 import json
+import os
 import re
 import subprocess
 import sys
@@ -25,10 +26,17 @@ import uuid
 import wave
 from pathlib import Path
 
-VERSION = "1.0"
+VERSION = "1.2"
 UI_PORT = 8091
 BASE = Path(__file__).resolve().parent
 CFG = json.loads((BASE / "config.json").read_text(encoding="utf-8"))
+
+# provider=groq: STT + cleanup on Groq's API (audio leaves the machine).
+# The key lives in groq_key.txt (gitignored) or GROQ_API_KEY, NEVER in config.
+GROQ_URL = "https://api.groq.com/openai/v1"
+_kf = BASE / "groq_key.txt"
+GROQ_KEY = (_kf.read_text(encoding="utf-8").strip() if _kf.exists()
+            else os.environ.get("GROQ_API_KEY", ""))
 
 if sys.stdout is None or sys.stderr is None:  # pythonw: no console, log to a file
     (BASE / ".tmp").mkdir(exist_ok=True)
@@ -182,6 +190,8 @@ def _audio_cb(indata, frames, t, status):
 def warm_ollama():
     """Preloads the Ollama model without generating anything (messages=[] = preload).
     Fires when you press Fn: while you speak, the model is already loading."""
+    if CFG.get("provider") == "groq":
+        return  # nothing to preload in the cloud
     def _ping():
         try:
             body = json.dumps({"model": CFG["ollama_model"], "messages": [],
@@ -234,7 +244,7 @@ def _is_silence(raw):
 
 
 # ---------------------------------------------------------------- HTTP (stdlib)
-def multipart_post(url, fields, file_bytes, timeout):
+def multipart_post(url, fields, file_bytes, timeout, headers=None):
     boundary = "----flowlocal" + uuid.uuid4().hex
     parts = []
     for k, v in fields.items():
@@ -246,7 +256,8 @@ def multipart_post(url, fields, file_bytes, timeout):
     parts.append(file_bytes)
     parts.append(f"\r\n--{boundary}--\r\n".encode())
     req = urllib.request.Request(url, data=b"".join(parts), headers={
-        "Content-Type": f"multipart/form-data; boundary={boundary}"})
+        "Content-Type": f"multipart/form-data; boundary={boundary}",
+        **(headers or {})})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())
 
@@ -254,11 +265,17 @@ def multipart_post(url, fields, file_bytes, timeout):
 def transcribe(wav_bytes):
     """-> (raw_text, ms)"""
     t0 = time.monotonic()
-    fields = {
-        "language": CFG["language"],
-        "response_format": "json",
-        "temperature": "0.0",
-    }
+    fields = {"response_format": "json", "temperature": "0.0"}
+    url, timeout, headers = CFG["whisper_url"], 120, None
+    if CFG.get("provider") == "groq":
+        url = GROQ_URL + "/audio/transcriptions"
+        fields["model"] = CFG.get("groq_stt_model", "whisper-large-v3-turbo")
+        headers = {"Authorization": f"Bearer {GROQ_KEY}"}
+        timeout = 30  # cloud: fail fast instead of holding PROCESSING for 2 min
+        if CFG["language"] != "auto":  # Groq: omitted language = autodetect
+            fields["language"] = CFG["language"]
+    else:
+        fields["language"] = CFG["language"]  # whisper.cpp accepts "auto"
     # initial_prompt: in Auto, a bilingual seed anchors whisper to transcribe
     # each language as-is; without it, with real voice it detects ONE language
     # for the whole window and TRANSLATES the rest. Dictionary vocab is added.
@@ -271,7 +288,7 @@ def transcribe(wav_bytes):
     parts += [e["written"] for e in dict_load()]
     if parts:
         fields["prompt"] = " ".join(parts)
-    resp = multipart_post(CFG["whisper_url"], fields, wav_bytes, timeout=120)
+    resp = multipart_post(url, fields, wav_bytes, timeout=timeout, headers=headers)
     text = " ".join(resp.get("text", "").split())  # whisper puts \n in the text
     return text, int((time.monotonic() - t0) * 1000)
 
@@ -297,30 +314,45 @@ def _rewrote(raw, text):
 
 
 def clean(raw):
-    """-> (clean_text, ms, fell_back). Never raises: if Ollama fails, returns raw."""
+    """-> (clean_text, ms, fell_back). Never raises: if the cleaner fails, returns raw."""
     t0 = time.monotonic()
     try:
-        body = json.dumps({
-            "model": CFG["ollama_model"],
-            # Input:/Output: mirrors the pattern of the system prompt examples:
-            # the model completes the transformation instead of "replying" to it
-            "messages": [{"role": "system", "content": CFG["system_prompt"]},
-                         {"role": "user", "content": f"Input: {raw}\nOutput:"}],
-            "stream": False,
-            "keep_alive": "10m",
-            "options": {"temperature": 0},
-        }).encode()
-        req = urllib.request.Request(CFG["ollama_url"], data=body,
-                                     headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=CFG["ollama_timeout_s"]) as r:
-            text = json.loads(r.read())["message"]["content"].strip()
+        # Input:/Output: mirrors the pattern of the system prompt examples:
+        # the model completes the transformation instead of "replying" to it
+        messages = [{"role": "system", "content": CFG["system_prompt"]},
+                    {"role": "user", "content": f"Input: {raw}\nOutput:"}]
+        if CFG.get("provider") == "groq":
+            body = json.dumps({
+                "model": CFG.get("groq_chat_model", "llama-3.3-70b-versatile"),
+                "messages": messages,
+                "temperature": 0,
+            }).encode()
+            req = urllib.request.Request(
+                GROQ_URL + "/chat/completions", data=body,
+                headers={"Content-Type": "application/json",
+                         "Authorization": f"Bearer {GROQ_KEY}"})
+            with urllib.request.urlopen(req, timeout=CFG["ollama_timeout_s"]) as r:
+                text = json.loads(
+                    r.read())["choices"][0]["message"]["content"].strip()
+        else:
+            body = json.dumps({
+                "model": CFG["ollama_model"],
+                "messages": messages,
+                "stream": False,
+                "keep_alive": "10m",
+                "options": {"temperature": 0},
+            }).encode()
+            req = urllib.request.Request(CFG["ollama_url"], data=body,
+                                         headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=CFG["ollama_timeout_s"]) as r:
+                text = json.loads(r.read())["message"]["content"].strip()
         if text:
             if _rewrote(raw, text):
-                print("  ollama rewrote (new words) -> using raw text")
+                print("  cleaner rewrote (new words) -> using raw text")
                 return raw, int((time.monotonic() - t0) * 1000), True
             return text, int((time.monotonic() - t0) * 1000), False
     except Exception as e:
-        print(f"  ollama failed ({e!r}) -> using raw text")
+        print(f"  cleaner failed ({e!r}) -> using raw text")
     return raw, int((time.monotonic() - t0) * 1000), True
 
 
@@ -510,14 +542,20 @@ def start_ui_server():
             elif self.path == "/api/state":
                 mics = sorted({d["name"] for d in _sd.query_devices()
                                if d["max_input_channels"] > 0}) if _sd else []
+                if CFG.get("provider") == "groq":
+                    stt = "Groq · " + CFG.get("groq_stt_model",
+                                              "whisper-large-v3-turbo")
+                    llm = "Groq · " + CFG.get("groq_chat_model",
+                                              "llama-3.3-70b-versatile")
+                else:
+                    stt = "Whisper · " + Path(
+                        CFG["whisper_model"]).stem.replace("ggml-", "")
+                    llm = "Ollama · " + CFG["ollama_model"]
                 self._send(200, {
                     "config": {"hotkey": CFG["hotkey"],
                                "language": CFG["language"],
                                "mic": CFG.get("mic") or ""},
-                    "about": {"version": VERSION,
-                              "whisper": Path(CFG["whisper_model"]).stem
-                              .replace("ggml-", ""),
-                              "ollama": CFG["ollama_model"]},
+                    "about": {"version": VERSION, "stt": stt, "llm": llm},
                     "mics": mics, "history": history_read(),
                     "dictionary": dict_load()})
             elif self.path == "/api/capture":
@@ -630,6 +668,11 @@ _whisper_proc = None  # our child (None if the server was already running)
 
 
 def ensure_whisper():
+    if CFG.get("provider") == "groq":
+        if not GROQ_KEY:
+            sys.exit("provider=groq but no API key: put it in groq_key.txt "
+                     "next to flow.py, or set GROQ_API_KEY")
+        return  # cloud STT: no local server to start
     base = CFG["whisper_url"].rsplit("/", 1)[0]
     try:
         urllib.request.urlopen(base, timeout=2)

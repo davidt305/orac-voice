@@ -450,7 +450,7 @@ function render() {
   const f = document.getElementById("badges");
   f.innerHTML = "";
   const a = state.about || {};
-  for (const txt of [`Orac Voice v${a.version}`, `Whisper · ${a.whisper}`, `Ollama · ${a.ollama}`]) {
+  for (const txt of [`Orac Voice v${a.version}`, a.stt, a.llm]) {
     const b = document.createElement("div");
     b.className = "badge";
     b.innerHTML = "<i></i>";

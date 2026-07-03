@@ -13,3 +13,4 @@ history.jsonl
 dictionary.json
 __pycache__/
 .DS_Store
+groq_key.txt
