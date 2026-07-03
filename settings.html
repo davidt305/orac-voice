@@ -211,6 +211,11 @@
     margin-bottom: 20px;
   }
   @media (max-width: 640px) { #howto { grid-template-columns: repeat(2, 1fr); } }
+  #privacy {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 640px) { #privacy { grid-template-columns: 1fr; } }
   .stepcard {
     position: relative; background: var(--card); border: 1px solid var(--line);
     border-radius: 14px; padding: 16px 14px 14px;
@@ -373,6 +378,25 @@
   <span class="hright"><button id="clear">Clear all</button><span class="chev">▼</span></span>
 </h2>
 <div class="collapse" id="histwrap"><div><div class="card" id="history"></div></div></div>
+
+<h2 style="cursor:default"><span>How your data stays private</span></h2>
+<div id="privacy">
+  <div class="stepcard"><span class="n">01</span>
+    <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg></div>
+    <b>Speech to text</b>
+    <small>Turns your voice into raw text. On <em>Local</em>, Whisper runs on this computer and your audio never leaves it. On <em>Groq</em>, the audio travels over an encrypted connection to Groq's API, which doesn't store it and doesn't use it for training.</small>
+  </div>
+  <div class="stepcard"><span class="n">02</span>
+    <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/></svg></div>
+    <b>The cleaner</b>
+    <small>A small LLM removes filler words ("um", "o sea") and fixes punctuation and capitalization — nothing else. On <em>Local</em> it's Ollama, a free open-source model on this computer; on <em>Groq</em> it's Llama on the same private API. If it ever tries to change your words, the raw transcript is pasted instead.</small>
+  </div>
+  <div class="stepcard"><span class="n">03</span>
+    <div class="ic"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+    <b>What stays here</b>
+    <small>Your dictation history and custom dictionary are plain files on this computer. They're never uploaded anywhere, and "Clear all" wipes the history whenever you want.</small>
+  </div>
+</div>
 
 <div id="welcome-overlay" class="overlay">
   <div class="modal">
