@@ -43,16 +43,18 @@ Guardar en `models/`. Si usaste `small`, cambiar `whisper_model` en `config.json
 
 Si tu whisper-server no quedó en `/opt/homebrew/bin/whisper-server` (Mac Intel: `/usr/local/bin/...`), ajustar `whisper_server_bin` en `config.json`.
 
-## Paso 4: arrancar y dar permisos
+## Paso 4: crear la app y dar permisos
 
 ```bash
-.venv/bin/python flow.py
+chmod +x make-app.sh && ./make-app.sh
 ```
 
-La primera vez macOS va a pedir (para tu Terminal, o para la app con que lo lances):
+Esto crea **Orac Voice** en /Applications (con ícono y firma ad-hoc, para que los permisos aparezcan a nombre de "Orac Voice" y no de Terminal o Python). Ábrela desde Aplicaciones y macOS va a pedir:
 
 1. **Micrófono**: aceptar.
-2. **Input Monitoring** y **Accessibility**: System Settings → Privacy & Security. Activar, cerrar la Terminal y volver a correr.
+2. **Input Monitoring** y **Accessibility**: System Settings → Privacy & Security, activar "Orac Voice" en ambas listas, y abrir la app de nuevo.
+
+Alternativa para debug (log en vivo en la terminal): `.venv/bin/python flow.py`. En ese caso los permisos se piden para tu Terminal.
 
 ## Paso 5: probar
 
@@ -71,10 +73,6 @@ Debe imprimir el texto crudo y el limpio.
 ## Uso diario
 
 Ver el [README](README.md#uso). Ajustes en http://127.0.0.1:8091 (o menú 🎙).
-
-## Opcional: launcher como app
-
-Para no depender de la Terminal, se puede envolver el comando en una app con Automator (Run Shell Script → `cd <carpeta> && .venv/bin/python -u flow.py >> .tmp/orac.log 2>&1 &`) y guardarla en /Applications. Ojo: los permisos TCC (mic, teclado) quedan atados a esa app y hay que otorgarlos de nuevo la primera vez.
 
 ## Solución de problemas
 

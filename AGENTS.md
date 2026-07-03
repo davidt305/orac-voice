@@ -29,10 +29,11 @@ python3 -m venv .venv && .venv/bin/pip install sounddevice pyobjc
 # model (16GB+ RAM; use ggml-small-q8_0.bin for 8GB and update config.json)
 curl -L -o models/ggml-large-v3-turbo-q5_0.bin \
   https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin
-.venv/bin/python flow.py
+./make-app.sh   # builds "/Applications/Orac Voice.app" (ad-hoc signed) pointing at this clone
+open -a "Orac Voice"
 ```
 
-macOS will require Microphone, Input Monitoring and Accessibility permissions for the launching app (Terminal). The daemon prints exact instructions if the event tap fails. TCC permissions are the most common failure: they bind to the app identity that launched the process.
+macOS will require Microphone, Input Monitoring and Accessibility permissions. With the make-app.sh bundle they are requested and listed as "Orac Voice" (the ad-hoc signature gives TCC a stable identity; without it, grants get attributed to Terminal or Python). Running `.venv/bin/python flow.py` directly from a terminal also works for debugging, but then permissions bind to the terminal app. The daemon prints exact instructions if the event tap fails.
 
 ## Install: Windows
 
