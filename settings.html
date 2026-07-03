@@ -187,26 +187,22 @@
   .stepcard b { font-size: 13.5px; font-weight: 700; line-height: 1.3; }
   .stepcard em { color: var(--lime); font-style: normal; }
   .stepcard small { color: var(--dim); font-size: 12px; line-height: 1.45; }
-  #tagline {
-    text-align: center; color: var(--lime); opacity: .8;
-    font: 500 12px "Inter", sans-serif; margin-top: 30px;
-  }
-  #modal-overlay {
+  .overlay {
     position: fixed; inset: 0; background: rgba(0, 0, 0, .6);
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
     display: flex; align-items: center; justify-content: center;
     opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 10;
   }
-  #modal-overlay.show { opacity: 1; pointer-events: auto; }
-  #modal {
+  .overlay.show { opacity: 1; pointer-events: auto; }
+  .modal {
     background: var(--card); border: 1px solid var(--line); border-radius: 16px;
     padding: 26px 28px; max-width: 380px; margin: 20px; text-align: center;
     transform: translateY(12px) scale(.97); transition: transform .3s cubic-bezier(.4, 0, .2, 1);
     box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
   }
-  #modal-overlay.show #modal { transform: none; }
-  #modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
-  #modal p { color: var(--dim); font-size: 13.5px; margin-bottom: 20px; }
+  .overlay.show .modal { transform: none; }
+  .modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .modal p { color: var(--dim); font-size: 13.5px; margin-bottom: 20px; }
   .modal-btns { display: flex; gap: 10px; justify-content: center; }
   .modal-btns button {
     font: 600 13.5px inherit; font-family: inherit; border-radius: 999px;
@@ -224,6 +220,12 @@
   }
   .btn-danger:hover { background: #f2555a; box-shadow: 0 3px 0 #8f2327, 0 0 14px rgba(229, 72, 77, .4); }
   .btn-danger:active { transform: translateY(2px); box-shadow: 0 1px 0 #8f2327; }
+  .btn-lime {
+    background: var(--lime); color: var(--ink); border: 1px solid var(--lime);
+    font-weight: 700; box-shadow: 0 3px 0 #7f9e00;
+  }
+  .btn-lime:hover { box-shadow: 0 3px 0 #7f9e00, 0 0 14px rgba(204, 255, 0, .35); }
+  .btn-lime:active { transform: translateY(2px); box-shadow: 0 1px 0 #7f9e00; }
   #toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
     background: var(--lime); color: var(--ink); font-weight: 700; font-size: 13px;
@@ -263,10 +265,26 @@
   </div>
   <div class="row">
     <div class="label">
+      <div class="ic"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/><line x1="3" y1="3" x2="21" y2="21"/></svg></div>
+      <div><b>Microphone access</b>
+      <small>Off releases the mic (no "in use" indicator) · dictation pauses until you turn it back on</small></div>
+    </div>
+    <div class="seg" id="micen"></div>
+  </div>
+  <div class="row">
+    <div class="label">
       <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
       <div><b>Language</b><small>Dictation detection</small></div>
     </div>
     <div class="seg" id="langs"></div>
+  </div>
+  <div class="row">
+    <div class="label">
+      <div class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg></div>
+      <div><b>Engine</b>
+      <small>Local: private, runs on this computer · Groq: cloud API, fast on any hardware</small></div>
+    </div>
+    <div class="seg" id="engine"></div>
   </div>
 </div>
 
@@ -316,13 +334,25 @@
 </h2>
 <div class="collapse" id="histwrap"><div><div class="card" id="history"></div></div></div>
 
-<p id="tagline">100% Local, 100% Private</p>
-<div style="text-align:center; margin-top:14px">
+<div style="text-align:center; margin-top:30px">
   <button id="quit" class="btn-ghost" style="font:600 12px 'Inter',sans-serif; padding:7px 16px; border-radius:999px; cursor:pointer">Quit Orac Voice</button>
 </div>
 
-<div id="modal-overlay">
-  <div id="modal">
+<div id="welcome-overlay" class="overlay">
+  <div class="modal">
+    <div class="ic" style="margin:0 auto 14px"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/></svg></div>
+    <h3>Orac Voice is running</h3>
+    <p>Click any text field, hold <b class="hk-label" style="color:var(--lime)">your key</b> and speak — release it and the clean text pastes itself.<br>
+    Double-tap for hands-free · Esc cancels.<br><br>
+    This page is your settings: engine, key, microphone, dictionary and history.</p>
+    <div class="modal-btns">
+      <button class="btn-lime" id="welcome-ok">Got it</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-overlay" class="overlay">
+  <div id="modal" class="modal">
     <h3>Delete all history?</h3>
     <p>This will permanently delete all your dictations from this computer.<br>This can't be undone.</p>
     <div class="modal-btns">
@@ -406,6 +436,10 @@ function render() {
   document.querySelectorAll(".hk-label").forEach(
     el => el.textContent = state.config.hotkey.label);
   seg(document.getElementById("langs"), LANGS, state.config.language, "language");
+  seg(document.getElementById("engine"), {local: "Local", groq: "Groq"},
+      state.config.provider, "provider");
+  seg(document.getElementById("micen"), {on: "On", off: "Off"},
+      state.config.mic_enabled ? "on" : "off", "mic_enabled");
   const mic = document.getElementById("mic");
   mic.innerHTML = '<option value="">Auto (system default)</option>';
   for (const name of state.mics) {
@@ -510,6 +544,13 @@ histbar.onclick = () => {
   histwrap.classList.toggle("closed", closed);
   localStorage.histClosed = closed ? "1" : "0";
 };
+const wov = document.getElementById("welcome-overlay");
+if (new URLSearchParams(location.search).has("welcome")) wov.classList.add("show");
+document.getElementById("welcome-ok").onclick = () => {
+  wov.classList.remove("show");
+  history.replaceState(null, "", "/");
+};
+wov.onclick = e => { if (e.target === wov) document.getElementById("welcome-ok").click(); };
 load();
 setInterval(load, 5000);
 </script>

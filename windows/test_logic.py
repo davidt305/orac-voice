@@ -13,6 +13,7 @@ import json
 import sys
 import time
 import types
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -123,6 +124,23 @@ try:
 
     api("/api/dict/delete", {"written": "word-that-does-not-exist"})
     assert isinstance(api("/api/state")["dictionary"], list)
+
+    # --- 7. mic toggle: off must block dictation, on restores it
+    api("/api/config", {"mic_enabled": "off"})
+    assert flow.CFG["mic_enabled"] is False
+    flow.on_fn_down()
+    assert flow._state == flow.IDLE, "mic off must not start a recording"
+    api("/api/config", {"mic_enabled": "on"})
+    assert flow.CFG["mic_enabled"] is True
+
+    # --- 8. engine: groq without a key next to flow.py -> 400, stays local
+    if not (HERE / "groq_key.txt").exists():
+        try:
+            api("/api/config", {"provider": "groq"})
+            raise AssertionError("expected 400 without a Groq key")
+        except urllib.error.HTTPError as e:
+            assert e.code == 400
+        assert flow.CFG.get("provider", "local") == "local"
 
     print("ALL OK: state machine, hotkey, capture and API")
 finally:

@@ -26,7 +26,7 @@ import uuid
 import wave
 from pathlib import Path
 
-VERSION = "1.2"
+VERSION = "1.3"
 UI_PORT = 8091
 BASE = Path(__file__).resolve().parent
 CFG = json.loads((BASE / "config.json").read_text(encoding="utf-8"))
@@ -35,11 +35,18 @@ CFG = json.loads((BASE / "config.json").read_text(encoding="utf-8"))
 # The key lives in groq_key.txt (gitignored) or GROQ_API_KEY, NEVER in config.
 GROQ_URL = "https://api.groq.com/openai/v1"
 _kf = BASE / "groq_key.txt"
-GROQ_KEY = (_kf.read_text(encoding="utf-8").strip() if _kf.exists()
+
+
+def groq_key():
+    """Re-read per call: adding or rotating the key needs no restart."""
+    return (_kf.read_text(encoding="utf-8").strip() if _kf.exists()
             else os.environ.get("GROQ_API_KEY", ""))
-# Cloudflare in front of Groq 403-bans Python-urllib's default User-Agent
-GROQ_HEADERS = {"Authorization": f"Bearer {GROQ_KEY}",
-                "User-Agent": "OracVoice/" + VERSION}
+
+
+def groq_headers():
+    # Cloudflare in front of Groq 403-bans Python-urllib's default User-Agent
+    return {"Authorization": "Bearer " + groq_key(),
+            "User-Agent": "OracVoice/" + VERSION}
 
 IS_MAC = sys.platform == "darwin"
 if IS_MAC:
@@ -270,7 +277,7 @@ def transcribe(wav_bytes):
     if CFG.get("provider") == "groq":
         url = GROQ_URL + "/audio/transcriptions"
         fields["model"] = CFG.get("groq_stt_model", "whisper-large-v3-turbo")
-        headers = GROQ_HEADERS
+        headers = groq_headers()
         timeout = 30  # cloud: fail fast instead of holding PROCESSING for 2 min
         if CFG["language"] != "auto":  # Groq: omitted language = autodetect
             fields["language"] = CFG["language"]
@@ -329,7 +336,7 @@ def clean(raw):
             }).encode()
             req = urllib.request.Request(
                 GROQ_URL + "/chat/completions", data=body,
-                headers={"Content-Type": "application/json", **GROQ_HEADERS})
+                headers={"Content-Type": "application/json", **groq_headers()})
             with urllib.request.urlopen(req, timeout=CFG["ollama_timeout_s"]) as r:
                 text = json.loads(
                     r.read())["choices"][0]["message"]["content"].strip()
@@ -459,10 +466,14 @@ def open_stream():
     If the mic rejects 16kHz (typical 48k USB like the Shure MV7+), opens at
     its native rate and stop_recording() resamples to 16k for Whisper."""
     global _stream, _capture_rate
+    if _sd is None:
+        return  # --test / logic tests: no live audio
     if _stream:
         _stream.stop()
         _stream.close()
         _stream = None
+    if not CFG.get("mic_enabled", True):
+        return  # privacy toggle: mic released, no "in use" indicator
     dev = None
     if CFG.get("mic"):
         for i, d in enumerate(_sd.query_devices()):
@@ -529,7 +540,7 @@ def start_ui_server():
             self.wfile.write(data)
 
         def do_GET(self):
-            if self.path == "/":
+            if self.path.split("?", 1)[0] == "/":  # "/?welcome" also lands here
                 self._send(200, (BASE / "settings.html").read_bytes(),
                            "text/html; charset=utf-8")
             elif self.path.startswith("/fonts/"):
@@ -553,7 +564,9 @@ def start_ui_server():
                 self._send(200, {
                     "config": {"hotkey": CFG["hotkey"],
                                "language": CFG["language"],
-                               "mic": CFG.get("mic") or ""},
+                               "mic": CFG.get("mic") or "",
+                               "provider": CFG.get("provider", "local"),
+                               "mic_enabled": CFG.get("mic_enabled", True)},
                     "about": {"version": VERSION, "stt": stt, "llm": llm},
                     "mics": mics, "history": history_read(),
                     "dictionary": dict_load()})
@@ -586,6 +599,24 @@ def start_ui_server():
                     _watch[:] = [hk["keycode"], mask]
                 if body.get("language") in ("auto", "es", "en"):
                     CFG["language"] = body["language"]
+                if body.get("provider") in ("local", "groq"):
+                    if body["provider"] == "groq" and not groq_key():
+                        return self._send(
+                            400, ("No Groq API key: put it in groq_key.txt "
+                                  "next to flow.py").encode(),
+                            "text/plain; charset=utf-8")
+                    CFG["provider"] = body["provider"]
+                    if body["provider"] == "local":
+                        # ponytail: fire-and-forget; if the local server can't
+                        # start, the next dictation errors and the log says why
+                        threading.Thread(target=ensure_whisper,
+                                         daemon=True).start()
+                if body.get("mic_enabled") in ("on", "off"):
+                    if _state != IDLE:
+                        return self._send(409, "Finish dictating first".encode(),
+                                          "text/plain; charset=utf-8")
+                    CFG["mic_enabled"] = body["mic_enabled"] == "on"
+                    open_stream()
                 if "mic" in body:
                     if _state != IDLE:
                         return self._send(409, "Finish dictating first".encode(),
@@ -608,6 +639,9 @@ def start_ui_server():
                                       "text/plain; charset=utf-8")
                 if _state != IDLE or _dict_rec["active"]:
                     return self._send(409, "Finish dictating first".encode(),
+                                      "text/plain; charset=utf-8")
+                if not CFG.get("mic_enabled", True):
+                    return self._send(400, "Microphone is off".encode(),
                                       "text/plain; charset=utf-8")
                 spoken = dict_record_word()
                 if not spoken:
@@ -661,6 +695,12 @@ def start_ui_server():
         sys.exit(f"Port {UI_PORT} is taken by another program; "
                  "close it or change UI_PORT in flow.py")
     threading.Thread(target=srv.serve_forever, daemon=True).start()
+    marker = BASE / ".tmp" / "welcomed"
+    if _sd is not None and not marker.exists():  # first live launch: welcome
+        marker.parent.mkdir(exist_ok=True)
+        marker.write_text("1")
+        import webbrowser
+        webbrowser.open(f"http://127.0.0.1:{UI_PORT}/?welcome")
 
 
 # ---------------------------------------------------------------- whisper-server
@@ -669,7 +709,7 @@ _whisper_proc = None  # our child (None if the server was already running)
 
 def ensure_whisper():
     if CFG.get("provider") == "groq":
-        if not GROQ_KEY:
+        if not groq_key():
             sys.exit("provider=groq but no API key: put it in groq_key.txt "
                      "next to flow.py, or set GROQ_API_KEY")
         return  # cloud STT: no local server to start
@@ -746,7 +786,7 @@ def finish(raw_audio, rate, duration):
         press_paste()
         total = time.monotonic() - t0
         tag = "FALLBACK raw" if fell_back else "ok"
-        log(f"rec {duration:.1f}s | whisper {ms_w}ms | ollama {ms_o}ms ({tag}) | "
+        log(f"rec {duration:.1f}s | whisper {ms_w}ms | cleaner {ms_o}ms ({tag}) | "
             f"total {total:.2f}s | {len(text)} chars")
     except Exception:
         play_sound(CFG["sound_error"])
@@ -811,6 +851,10 @@ def on_fn_down():
     global _state, _t_down, _hf_timer
     with _lock:
         if _state == IDLE:
+            if not CFG.get("mic_enabled", True):
+                log("mic is off (enable it in Settings)")
+                play_sound(CFG["sound_error"])
+                return
             start_recording()
             _t_down = time.monotonic()
             _state = RECORDING
@@ -858,7 +902,7 @@ def run_test(wav_path):
     assert text, "pipeline returned empty text"
     set_clipboard(text)
     tag = "FALLBACK raw" if fell_back else "ok"
-    log(f"rec {duration:.1f}s | whisper {ms_w}ms | ollama {ms_o}ms ({tag}) | "
+    log(f"rec {duration:.1f}s | whisper {ms_w}ms | cleaner {ms_o}ms ({tag}) | "
         f"total {time.monotonic() - t0:.2f}s | {len(text)} chars")
     print(f"RAW  : {raw}\nCLEAN: {text}\n(the clean text is in your clipboard)")
 
