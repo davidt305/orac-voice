@@ -78,4 +78,4 @@ Las únicas piezas por plataforma son 4 funciones en `flow.py` (hotkey, clipboar
 
 ## Licencia
 
-MIT. Las fuentes empaquetadas en `fonts/` (Poppins, Inter, Fraunces) son [SIL Open Font License 1.1](https://openfontlicense.org/).
+MIT. Las fuentes empaquetadas en `fonts/` (Poppins, Inter) son [SIL Open Font License 1.1](https://openfontlicense.org/).

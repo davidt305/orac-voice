@@ -28,19 +28,20 @@ from pathlib import Path
 VERSION = "1.0"
 UI_PORT = 8091
 BASE = Path(__file__).resolve().parent
-CFG = json.loads((BASE / "config.json").read_text())
+CFG = json.loads((BASE / "config.json").read_text(encoding="utf-8"))
 
 if sys.stdout is None or sys.stderr is None:  # pythonw: sin consola, log a archivo
     (BASE / ".tmp").mkdir(exist_ok=True)
     sys.stdout = sys.stderr = open(BASE / ".tmp" / "orac.log", "a",
                                    buffering=1, encoding="utf-8")
 
-# teclas modificadoras bindeables: nombre pynput -> label
+# teclas modificadoras bindeables: nombre pynput -> label.
+# Fuera a propósito: teclas Win (abren el menú Inicio al soltarlas) y Left Ctrl
+# (los teclados con AltGr sintetizan un Left Ctrl fantasma en cada AltGr).
 CAPTURE_KEYS = {
-    "ctrl_r": "Right Ctrl", "ctrl_l": "Left Ctrl",
+    "ctrl_r": "Right Ctrl",
     "alt_l": "Left Alt", "alt_r": "Right Alt", "alt_gr": "AltGr",
     "shift_r": "Right Shift", "shift_l": "Left Shift",
-    "cmd": "Left Win", "cmd_r": "Right Win",
 }
 # config de Mac o corrupto -> default Right Ctrl
 if not isinstance(CFG.get("hotkey"), dict) \
@@ -74,8 +75,9 @@ def _on_key(name, down, on_down, on_up):
 
 def setup_hotkey_listener(on_down, on_up, on_escape=None):
     """Hook global de teclado vía pynput (corre en su propio thread).
-    Filtra los eventos inyectados por la propia app (LLKHF_INJECTED): nuestro
-    Ctrl+V sintético no debe disparar un dictado si la tecla bindeada es Ctrl."""
+    Sin filtro de eventos inyectados: lo necesitan RDP, PowerToys y teclados
+    en pantalla, y nuestro Ctrl+V sintético solo toca Left Ctrl + V, que no
+    están en CAPTURE_KEYS, así que no puede autodisparar un dictado."""
     from pynput import keyboard
 
     def on_press(key):
@@ -91,9 +93,7 @@ def setup_hotkey_listener(on_down, on_up, on_escape=None):
         if name:
             _on_key(name, False, on_down, on_up)
 
-    listener = keyboard.Listener(
-        on_press=on_press, on_release=on_release,
-        win32_event_filter=lambda msg, data: not (data.flags & 0x10))
+    listener = keyboard.Listener(on_press=on_press, on_release=on_release)
     listener.daemon = True
     listener.start()
     return listener
@@ -108,7 +108,7 @@ def set_clipboard(text):
     k.GlobalLock.argtypes = [wintypes.HGLOBAL]
     k.GlobalUnlock.argtypes = [wintypes.HGLOBAL]
     u.SetClipboardData.argtypes = [wintypes.UINT, wintypes.HANDLE]
-    for _ in range(3):  # otro proceso puede tener el clipboard tomado
+    for _ in range(10):  # otro proceso puede tener el clipboard tomado
         if u.OpenClipboard(None):
             break
         time.sleep(0.05)
@@ -141,6 +141,17 @@ def play_sound(alias):
     if alias:
         import winsound
         winsound.PlaySound(alias, winsound.SND_ALIAS | winsound.SND_ASYNC)
+
+
+def _quit_app():
+    """Quit limpio desde la página de ajustes (botón Quit)."""
+    if _whisper_proc:
+        _whisper_proc.terminate()
+    if PILL:
+        PILL.quit()  # cierra el mainloop de tkinter; el proceso sale solo
+    else:
+        import os
+        os._exit(0)
 
 
 # ---------------------------------------------------------------- audio
@@ -194,20 +205,32 @@ def start_recording():
 
 
 def stop_recording():
-    """-> (wav_bytes 16kHz, duration_s)"""
+    """-> (raw_bytes, rate, duration_s). Barato a propósito: corre en el
+    callback del hotkey; el resample/encode pesado va en el worker (finish)."""
     global _recording
     _recording = False
     play_sound(CFG["sound_stop"])
     raw = b"".join(_audio_buf)
-    duration = len(raw) / (_capture_rate * 2)  # int16 mono
-    raw = _resample_16k(raw, _capture_rate)
+    return raw, _capture_rate, len(raw) / (_capture_rate * 2)  # int16 mono
+
+
+def _encode_wav16k(raw, rate):
+    """int16 mono a cualquier rate -> bytes de WAV 16kHz para whisper."""
+    raw = _resample_16k(raw, rate)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
         w.setframerate(SAMPLE_RATE)
         w.writeframes(raw)
-    return buf.getvalue(), duration
+    return buf.getvalue()
+
+
+def _is_silence(raw):
+    """True si el audio no tiene voz (mic muteado/desconectado). Sin este gate
+    whisper alucina frases tipo "Thank you." sobre el silencio."""
+    samples = array.array("h", raw)
+    return not samples or max(abs(s) for s in samples) < 500
 
 
 # ---------------------------------------------------------------- HTTP (stdlib)
@@ -244,14 +267,19 @@ def transcribe(wav_bytes):
     return text, int((time.monotonic() - t0) * 1000)
 
 
+def _norm_words(s):
+    """Palabras comparables: sin puntuación en los bordes, en minúscula.
+    Compartida por el guard del limpiador y las llaves del diccionario."""
+    return [w.strip(".,;:¿?¡!\"'()").lower() for w in s.split()]
+
+
 def _rewrote(raw, text):
     """True si el limpiador metió palabras que no estaban en el crudo.
-    Su contrato es solo BORRAR muletillas: demasiada palabra nueva = tradujo,
-    parafraseó o respondió como chatbot (el 3B unifica idiomas en dictados
-    mixtos ES->EN; ver .tmp/HANDOFF.md)."""
-    norm = lambda s: [w.strip(".,;:¿?¡!\"'()").lower() for w in s.split()]
-    raw_words = set(norm(raw))
-    out = [w for w in norm(text) if w]
+    Su contrato es solo BORRAR muletillas: demasiada palabra nueva significa
+    que tradujo, parafraseó o respondió como chatbot (llama3.2:3b tiende a
+    unificar dictados bilingües al idioma de la primera frase)."""
+    raw_words = set(_norm_words(raw))
+    out = [w for w in _norm_words(text) if w]
     if not out:
         return True
     new = sum(1 for w in out if w not in raw_words)
@@ -292,15 +320,21 @@ _hist_lock = threading.Lock()
 
 
 def history_append(text):
-    with _hist_lock, open(HISTORY_FILE, "a") as f:
-        f.write(json.dumps({"ts": time.time(), "text": text},
-                           ensure_ascii=False) + "\n")
+    with _hist_lock:
+        with open(HISTORY_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"ts": time.time(), "text": text},
+                               ensure_ascii=False) + "\n")
+        items = _history_all()
+        if len(items) > 1000:  # ponytail: cap fijo; el poll de 5s no crece eterno
+            HISTORY_FILE.write_text(
+                "".join(json.dumps(i, ensure_ascii=False) + "\n"
+                        for i in items[-500:]), encoding="utf-8")
 
 
 def _history_all():
     if not HISTORY_FILE.exists():
         return []
-    with open(HISTORY_FILE) as f:
+    with open(HISTORY_FILE, encoding="utf-8") as f:
         return [json.loads(l) for l in f if l.strip()]
 
 
@@ -313,7 +347,8 @@ def history_delete(ts):
     with _hist_lock:
         items = [i for i in _history_all() if i["ts"] != ts]
         HISTORY_FILE.write_text(
-            "".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items))
+            "".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items),
+            encoding="utf-8")
 
 
 def history_clear():
@@ -332,15 +367,16 @@ _dict_rec = {"active": False, "buf": []}
 def dict_load():
     if not DICT_FILE.exists():
         return []
-    return json.loads(DICT_FILE.read_text())
+    return json.loads(DICT_FILE.read_text(encoding="utf-8"))
 
 
 def dict_save(entries):
-    DICT_FILE.write_text(json.dumps(entries, indent=2, ensure_ascii=False) + "\n")
+    DICT_FILE.write_text(json.dumps(entries, indent=2, ensure_ascii=False) + "\n",
+                         encoding="utf-8")
 
 
 def _norm_spoken(s):
-    return " ".join(w.strip(".,;:¿?¡!\"'()").lower() for w in s.split())
+    return " ".join(_norm_words(s))
 
 
 def dict_record_word():
@@ -351,15 +387,11 @@ def dict_record_word():
     time.sleep(2.5)  # ponytail: ventana fija; basta para una palabra o sigla
     _dict_rec["active"] = False
     play_sound(CFG["sound_stop"])
-    raw = _resample_16k(b"".join(_dict_rec["buf"]), _capture_rate)
+    raw = b"".join(_dict_rec["buf"])
     _dict_rec["buf"] = []
-    buf = io.BytesIO()
-    with wave.open(buf, "wb") as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(SAMPLE_RATE)
-        w.writeframes(raw)
-    spoken, _ = transcribe(buf.getvalue())
+    if _is_silence(raw):
+        return ""
+    spoken, _ = transcribe(_encode_wav16k(raw, _capture_rate))
     return _norm_spoken(spoken)
 
 
@@ -434,7 +466,7 @@ def _resample_16k(raw, rate):
 # ---------------------------------------------------------------- servidor UI
 def save_config():
     (BASE / "config.json").write_text(
-        json.dumps(CFG, indent=2, ensure_ascii=False) + "\n")
+        json.dumps(CFG, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def start_ui_server():
@@ -487,6 +519,11 @@ def start_ui_server():
             n = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(n) or b"{}")
             if self.path == "/api/capture/start":
+                if _state != IDLE:
+                    # capturar mientras se dicta se tragaría el release de la
+                    # tecla sostenida y el mic quedaría grabando para siempre
+                    return self._send(409, "Termina el dictado primero".encode(),
+                                      "text/plain; charset=utf-8")
                 _capture["active"] = True
                 _capture["result"] = None
                 return self._send(200, {"ok": True})
@@ -543,6 +580,9 @@ def start_ui_server():
                 dict_save([e for e in dict_load()
                            if e["written"] != body.get("written")])
                 self._send(200, {"ok": True})
+            elif self.path == "/api/quit":
+                self._send(200, {"ok": True})
+                threading.Timer(0.3, _quit_app).start()
             elif self.path == "/api/history/delete":
                 history_delete(body.get("ts"))
                 self._send(200, {"ok": True})
@@ -567,11 +607,18 @@ def start_ui_server():
         daemon_threads = True
         allow_reuse_address = True
 
-    srv = Srv(("127.0.0.1", UI_PORT), Handler)
+    try:
+        srv = Srv(("127.0.0.1", UI_PORT), Handler)
+    except OSError:
+        sys.exit(f"El puerto {UI_PORT} está ocupado por otro programa; "
+                 "ciérralo o cambia UI_PORT en flow.py")
     threading.Thread(target=srv.serve_forever, daemon=True).start()
 
 
 # ---------------------------------------------------------------- whisper-server
+_whisper_proc = None  # hijo nuestro (None si el server ya corría de antes)
+
+
 def ensure_whisper():
     base = CFG["whisper_url"].rsplit("/", 1)[0]
     try:
@@ -585,12 +632,13 @@ def ensure_whisper():
     bin_ = Path(CFG["whisper_server_bin"])
     if not bin_.is_absolute():
         bin_ = BASE / bin_
-    proc = subprocess.Popen(
+    global _whisper_proc
+    _whisper_proc = subprocess.Popen(
         [str(bin_), "-m", str(BASE / CFG["whisper_model"]),
          "--host", "127.0.0.1", "--port", base.rsplit(":", 1)[1]],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-    atexit.register(proc.terminate)
+    atexit.register(_whisper_proc.terminate)
     # ponytail: sin supervisión de restart : si el server muere después, el error
     # se loguea en cada dictada y reinicias flow.py.
     for _ in range(60):
@@ -616,8 +664,9 @@ def log(msg):
     print(f"{time.strftime('%H:%M:%S')} | {msg}", flush=True)
 
 
-def finish(wav_bytes, duration):
-    """Worker por dictada. Corre en thread propio; el tap nunca espera."""
+def finish(raw_audio, rate, duration):
+    """Worker por dictada. Corre en thread propio; el tap nunca espera
+    (el resample/encode pesado de audios largos vive aquí, no en el tap)."""
     global _state
     t0 = time.monotonic()
     try:
@@ -625,17 +674,21 @@ def finish(wav_bytes, duration):
             log(f"descartada (muy corta: {duration:.2f}s)")
             play_sound(CFG["sound_error"])
             return
-        raw, ms_w = transcribe(wav_bytes)
+        if _is_silence(raw_audio):
+            log("descartada (silencio: ¿mic muteado?)")
+            play_sound(CFG["sound_error"])
+            return
+        raw, ms_w = transcribe(_encode_wav16k(raw_audio, rate))
         if not raw:
             log("descartada (whisper no oyó nada)")
             play_sound(CFG["sound_error"])
             return
         text, ms_o, fell_back = clean(raw)
         text = apply_dictionary(text)
+        history_append(text)  # primero: si el clipboard falla, el texto sobrevive
         set_clipboard(text)
         time.sleep(0.05)
         press_paste()
-        history_append(text)
         total = time.monotonic() - t0
         tag = "FALLBACK raw" if fell_back else "ok"
         log(f"rec {duration:.1f}s | whisper {ms_w}ms | ollama {ms_o}ms ({tag}) | "
@@ -653,11 +706,11 @@ def finish(wav_bytes, duration):
 def _spawn_finish():
     """Llamar con _lock tomado: cierra la grabación y lanza el worker."""
     global _state
-    wav, dur = stop_recording()
+    raw, rate, dur = stop_recording()
     _state = PROCESSING
     if PILL:
         PILL.show_processing()
-    threading.Thread(target=finish, args=(wav, dur), daemon=True).start()
+    threading.Thread(target=finish, args=(raw, rate, dur), daemon=True).start()
 
 
 def _hf_window_expired():
@@ -770,7 +823,7 @@ def main():
     PILL = pillmod.Pill()  # solo visual: Esc cancela, la tecla confirma
     setup_hotkey_listener(on_fn_down, on_fn_up, on_escape=cancel_dictation)
     print(f"Orac Voice listo. Mantén {CFG['hotkey']['label']} para dictar; "
-          "doble-tap = manos libres. Ajustes: http://127.0.0.1:8091")
+          f"doble-tap = manos libres. Ajustes: http://127.0.0.1:{UI_PORT}")
     PILL.run()  # tkinter mainloop en el thread principal
 
 

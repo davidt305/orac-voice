@@ -52,7 +52,7 @@ Work inside the `windows/` folder (it is self-contained; it can be copied alone 
 3. whisper binary exists (`whisper-bin\whisper-server.exe` on Windows; `which whisper-server` on macOS)
 4. The `.bin` referenced by `whisper_model` in config.json exists under `models/`
 5. `ollama list` includes `llama3.2:3b`
-6. Logic self-test (no audio needed, any OS): `python windows/test_logic.py` prints `TODO OK`
+6. Logic self-test (no audio needed, any OS): `python windows/test_logic.py` prints `TODO OK`. It backs up config.json/history.jsonl/dictionary.json to `*.bak` and restores them on exit; if it ever dies mid-run, restore from the leftover `.bak` files.
 7. Headless E2E (whisper + ollama, no mic): `python flow.py --test <path-to>/test-audio.wav` prints CRUDO and LIMPIO lines
 8. Launch the daemon; `curl http://127.0.0.1:8091/api/state` returns JSON
 
@@ -64,6 +64,7 @@ Work inside the `windows/` folder (it is self-contained; it can be copied alone 
 - `POST /api/history/clear` (POST, not GET), `POST /api/history/delete {"ts": ...}`
 - `POST /api/dict/record {"written": "n8n"}` → records ~2.5s of mic, returns what whisper heard; saved to `dictionary.json`
 - `POST /api/dict/delete {"written": "n8n"}`
+- `POST /api/quit` → clean shutdown (also terminates the whisper-server child it spawned)
 
 The 8091 bind is the single-instance lock: if `GET /api/state` answers, the app is already running (a second launch just opens the settings page and exits).
 
@@ -72,4 +73,4 @@ The 8091 bind is the single-instance lock: if `GET /api/state` answers, the app 
 - Do NOT edit `system_prompt` in config.json unless explicitly asked: it is calibrated for Chilean Spanish + English code-switching, with a deterministic guard in `clean()` that falls back to the raw transcript if the LLM rewrites instead of only deleting fillers.
 - Do NOT commit `history.jsonl`, `dictionary.json`, `models/`, `whisper-bin/`, `.tmp/` (already gitignored): they contain user data or large binaries.
 - Restart after editing `flow.py` or `config.json` (settings.html is re-read per request; a browser refresh is enough for it).
-- macOS restart: `kill $(pgrep -f flow.py)` then relaunch. Windows restart: end `pythonw.exe` in Task Manager, double-click the .vbs.
+- Clean shutdown on both platforms: the "Quit Orac Voice" button at the bottom of the settings page, or `POST /api/quit`. Fallbacks: macOS `kill $(pgrep -f flow.py)`; Windows end `pythonw.exe` in Task Manager (an orphaned whisper-server is fine: the next launch reuses it).

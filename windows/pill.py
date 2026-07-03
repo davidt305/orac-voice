@@ -68,8 +68,14 @@ class Pill:
     def push_level(self, level):
         pass  # ponytail: sin waveform en v1; animar el dot si se echa de menos
 
+    def quit(self):
+        self._want = "quit"  # el _tick lo aplica en el thread de tkinter
+
     # ---- aplicado en el thread de tkinter vía polling
     def _tick(self):
+        if self._want == "quit":
+            self.root.destroy()
+            return
         if self._want != self._shown:
             self._shown = self._want
             if self._shown == "hidden":

@@ -98,6 +98,7 @@ Debe imprimir el texto crudo y el limpio.
 | Ajustes, historial y diccionario | Doble click a Orac Voice.vbs (o http://127.0.0.1:8091) |
 | Cambiar la tecla de dictado | En ajustes, click al botón de la tecla y presionar la nueva |
 | Palabras propias (siglas, marcas) | En ajustes → Dictionary: escribir la palabra como debe quedar, click Record y decirla una vez |
+| Cerrar la app | Botón "Quit Orac Voice" al final de la página de ajustes |
 
 ## Arranque automático al prender el equipo (opcional)
 
@@ -110,12 +111,13 @@ Debe imprimir el texto crudo y el limpio.
 - **"pythonw no se reconoce"**: Python quedó fuera del PATH. Reinstalar marcando "Add python.exe to PATH".
 - **El texto no se pega pero suena el "listo"**: el texto SIEMPRE queda en el clipboard; pegar con Ctrl+V a mano. Pasa en apps corriendo como administrador.
 - **Whisper lento**: cambiar al modelo `small` (Paso 4) o usar el binario cublas si hay GPU NVIDIA.
-- **Reiniciar la app**: Administrador de tareas → terminar `pythonw.exe`, y doble click al .vbs de nuevo.
+- **Reiniciar la app**: botón "Quit Orac Voice" al final de la página de ajustes, y doble click al .vbs de nuevo. (Plan B: Administrador de tareas → terminar `pythonw.exe`; en ese caso whisper-server puede quedar corriendo, no es problema, el próximo arranque lo reutiliza.)
+- **La tecla Alt abre el menú de la app al soltarla**: es comportamiento de Windows con Alt; usar Right Ctrl o un Shift como tecla de dictado.
 
 ## Notas para agentes de IA
 
 - Esta carpeta es autocontenida: `flow.py` (daemon), `pill.py` (indicador visual), `settings.html` (UI servida en 127.0.0.1:8091), `config.json` (configuración), `fonts/` (offline).
 - El bind del puerto 8091 es el candado de instancia única: si responde `GET /api/state`, la app ya corre.
-- API local: `GET /api/state` (config + mics + historial + diccionario), `POST /api/config`, `POST /api/history/clear`, `POST /api/dict/record`, `POST /api/dict/delete`.
+- API local: `GET /api/state` (config + mics + historial + diccionario), `POST /api/config`, `POST /api/history/clear`, `POST /api/dict/record`, `POST /api/dict/delete`, `POST /api/quit` (cierre limpio).
 - Verificación de instalación correcta, en orden: (1) `python --version` ≥ 3.11, (2) `pip show sounddevice pynput`, (3) existe `whisper-bin\whisper-server.exe`, (4) existe el `.bin` en `models\` y coincide con `whisper_model` de config.json, (5) `ollama list` incluye `llama3.2:3b`, (6) `python flow.py --test test-audio.wav` imprime CRUDO y LIMPIO, (7) lanzar el .vbs y `curl http://127.0.0.1:8091/api/state` responde JSON.
 - No editar `system_prompt` de config.json salvo pedido explícito: está calibrado para español chileno + inglés mezclados.

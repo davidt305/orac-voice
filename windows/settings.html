@@ -15,11 +15,6 @@
     font-family: "Inter";
     src: url("/fonts/Inter-Medium.ttf") format("truetype");
   }
-  @font-face {
-    font-family: "Fraunces";
-    src: url("/fonts/Fraunces-Italic.ttf") format("truetype");
-    font-style: italic;
-  }
   :root {
     --bg: #0a0a0a; --card: #141414; --line: #232323;
     --txt: #f2f2f2; --dim: #8a8a8a; --lime: #ccff00; --ink: #0a0a0a;
@@ -296,7 +291,7 @@
   </div>
   <div class="stepcard"><span class="n">02</span>
     <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M9 15.5h6"/></svg></div>
-    <b>Hold <em class="hk-label">Right Ctrl</em> &amp; speak</b>
+    <b>Hold <em class="hk-label">your key</em> &amp; speak</b>
     <small>Release the key when you're done talking.</small>
   </div>
   <div class="stepcard"><span class="n">03</span>
@@ -307,7 +302,7 @@
   <div class="stepcard"><span class="n">04</span>
     <div class="ic"><svg viewBox="0 0 24 24"><path d="M8 21v-3.4L4.9 12.5a1.6 1.6 0 0 1 2.8-1.6l1.2 2.1V5.5a1.5 1.5 0 0 1 3 0V12M16 21v-3.4l3.1-5.1a1.6 1.6 0 0 0-2.8-1.6l-1.2 2.1V5.5a1.5 1.5 0 0 0-3 0V12"/></svg></div>
     <b>Hands-free</b>
-    <small>Double-tap <em class="hk-label">Right Ctrl</em> to start · tap once to finish · Esc cancels.</small>
+    <small>Double-tap <em class="hk-label">your key</em> to start · tap once to finish · Esc cancels.</small>
   </div>
 </div>
 
@@ -321,11 +316,14 @@
 <div class="collapse" id="histwrap"><div><div class="card" id="history"></div></div></div>
 
 <p id="tagline">100% Local, 100% Private</p>
+<div style="text-align:center; margin-top:14px">
+  <button id="quit" class="btn-ghost" style="font:600 12px 'Inter',sans-serif; padding:7px 16px; border-radius:999px; cursor:pointer">Quit Orac Voice</button>
+</div>
 
 <div id="modal-overlay">
   <div id="modal">
     <h3>Delete all history?</h3>
-    <p>This will permanently delete all your dictations from this Mac.<br>This can't be undone.</p>
+    <p>This will permanently delete all your dictations from this computer.<br>This can't be undone.</p>
     <div class="modal-btns">
       <button class="btn-ghost" id="modal-cancel">Go back</button>
       <button class="btn-danger" id="modal-confirm">Delete all</button>
@@ -338,7 +336,7 @@
 <script>
 const LANGS = {auto: "Auto", es: "Español", en: "English"};
 let state = null;
-let capturing = false, capPoll = null;
+let capturing = false, capPoll = null, capTimer = null;
 const firstVisit = !localStorage.oracSeen;   // glow de onboarding solo la 1ª vez
 localStorage.oracSeen = "1";
 
@@ -388,17 +386,17 @@ async function startCapture() {
   capPoll = setInterval(async () => {
     const c = await api("/api/capture");
     if (c.result) {                       // tecla detectada -> guardar al tiro
-      clearInterval(capPoll); capturing = false;
+      clearInterval(capPoll); clearTimeout(capTimer); capturing = false;
       await api("/api/config", {hotkey: c.result});
       toast(`Saved: ${c.result.label}`); load();
     } else if (!c.active) {               // cancelada (Esc) desde el daemon
-      clearInterval(capPoll); capturing = false; render();
+      clearInterval(capPoll); clearTimeout(capTimer); capturing = false; render();
     }
   }, 300);
-  setTimeout(() => { if (capturing) stopCapture(); }, 12000);
+  capTimer = setTimeout(() => { if (capturing) stopCapture(); }, 12000);
 }
 async function stopCapture() {
-  clearInterval(capPoll);
+  clearInterval(capPoll); clearTimeout(capTimer);
   await api("/api/capture/cancel", {});
   capturing = false; render();
 }
@@ -496,6 +494,11 @@ dictBtn.onclick = async () => {
 document.getElementById("dictword").addEventListener("keydown", e => {
   if (e.key === "Enter") dictBtn.click();
 });
+document.getElementById("quit").onclick = async () => {
+  await api("/api/quit", {});
+  document.body.style.opacity = ".35";
+  toast("Orac Voice closed");
+};
 const histbar = document.getElementById("histbar");
 const histwrap = document.getElementById("histwrap");
 if (localStorage.histClosed === "1") {
