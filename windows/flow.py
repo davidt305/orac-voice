@@ -172,6 +172,25 @@ def _quit_app():
         os._exit(0)
 
 
+def do_uninstall():
+    """Full self-uninstall: shortcuts and this folder. ponytail: a detached cmd
+    deletes the folder after we exit, since Windows locks a live process's
+    folder. Recoverable by re-cloning from GitHub."""
+    if _whisper_proc:
+        _whisper_proc.terminate()
+    for lnk in [Path(os.environ["USERPROFILE"]) / "Desktop" / "Orac Voice.lnk",
+                Path(os.environ.get("APPDATA", "")) /
+                "Microsoft/Windows/Start Menu/Programs/Startup/Orac Voice.lnk"]:
+        try:
+            lnk.unlink()
+        except OSError:
+            pass
+    # ping as a ~2s delay: timeout.exe needs a console, which a detached
+    # process doesn't have; ping waits reliably with no console.
+    subprocess.Popen(["cmd", "/c", f'ping 127.0.0.1 -n 3 >nul & rmdir /s /q "{BASE}"'],
+                     creationflags=0x00000008)  # DETACHED_PROCESS
+
+
 # ---------------------------------------------------------------- audio
 SAMPLE_RATE = 16000
 _audio_buf = []
@@ -667,6 +686,10 @@ def start_ui_server():
             elif self.path == "/api/quit":
                 self._send(200, {"ok": True})
                 threading.Timer(0.3, _quit_app).start()
+            elif self.path == "/api/uninstall":
+                self._send(200, {"ok": True})
+                do_uninstall()  # spawns a detached deleter, then we quit
+                threading.Timer(0.4, _quit_app).start()
             elif self.path == "/api/history/delete":
                 history_delete(body.get("ts"))
                 self._send(200, {"ok": True})

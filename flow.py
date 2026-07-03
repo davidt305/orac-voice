@@ -169,6 +169,22 @@ def _quit_app():
     AppHelper.callAfter(NSApplication.sharedApplication().terminate_, None)
 
 
+def do_uninstall():
+    """Full self-uninstall: app bundle, autostart, and this source folder.
+    ponytail: a detached shell does the deletion after we exit, since a process
+    can't reliably remove its own live folder. Everything is on GitHub, so a
+    dev clone is recoverable by re-cloning."""
+    import shlex
+    if _whisper_proc:
+        _whisper_proc.terminate()
+    la = Path.home() / "Library/LaunchAgents/com.davidt.oracvoice.plist"
+    if la.exists():
+        subprocess.run(["launchctl", "unload", str(la)], check=False)
+    targets = ["/Applications/Orac Voice.app", str(la), str(BASE)]
+    script = "sleep 1; " + "; ".join(f"rm -rf {shlex.quote(t)}" for t in targets)
+    subprocess.Popen(["/bin/sh", "-c", script], start_new_session=True)
+
+
 # ---------------------------------------------------------------- audio
 SAMPLE_RATE = 16000
 _audio_buf = []
@@ -665,6 +681,10 @@ def start_ui_server():
             elif self.path == "/api/quit":
                 self._send(200, {"ok": True})
                 threading.Timer(0.3, _quit_app).start()
+            elif self.path == "/api/uninstall":
+                self._send(200, {"ok": True})
+                do_uninstall()  # spawns a detached deleter, then we quit
+                threading.Timer(0.4, _quit_app).start()
             elif self.path == "/api/history/delete":
                 history_delete(body.get("ts"))
                 self._send(200, {"ok": True})
