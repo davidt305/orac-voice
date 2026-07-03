@@ -37,6 +37,9 @@ GROQ_URL = "https://api.groq.com/openai/v1"
 _kf = BASE / "groq_key.txt"
 GROQ_KEY = (_kf.read_text(encoding="utf-8").strip() if _kf.exists()
             else os.environ.get("GROQ_API_KEY", ""))
+# Cloudflare in front of Groq 403-bans Python-urllib's default User-Agent
+GROQ_HEADERS = {"Authorization": f"Bearer {GROQ_KEY}",
+                "User-Agent": "OracVoice/" + VERSION}
 
 IS_MAC = sys.platform == "darwin"
 if IS_MAC:
@@ -267,7 +270,7 @@ def transcribe(wav_bytes):
     if CFG.get("provider") == "groq":
         url = GROQ_URL + "/audio/transcriptions"
         fields["model"] = CFG.get("groq_stt_model", "whisper-large-v3-turbo")
-        headers = {"Authorization": f"Bearer {GROQ_KEY}"}
+        headers = GROQ_HEADERS
         timeout = 30  # cloud: fail fast instead of holding PROCESSING for 2 min
         if CFG["language"] != "auto":  # Groq: omitted language = autodetect
             fields["language"] = CFG["language"]
@@ -326,8 +329,7 @@ def clean(raw):
             }).encode()
             req = urllib.request.Request(
                 GROQ_URL + "/chat/completions", data=body,
-                headers={"Content-Type": "application/json",
-                         "Authorization": f"Bearer {GROQ_KEY}"})
+                headers={"Content-Type": "application/json", **GROQ_HEADERS})
             with urllib.request.urlopen(req, timeout=CFG["ollama_timeout_s"]) as r:
                 text = json.loads(
                     r.read())["choices"][0]["message"]["content"].strip()
