@@ -97,6 +97,35 @@ def _on_flags_changed(keycode, flags, on_down, on_up):
 # The functions in this section are the ONLY difference from the Windows
 # version, which lives complete and self-contained in windows/flow.py.
 
+def _ax_trusted():
+    """Report the two event permissions the app needs: listening to the
+    dictation key (the CGEventTap) and posting Cmd+V (the paste)."""
+    try:
+        return "listen=%s post=%s" % (
+            bool(Quartz.CGPreflightListenEventAccess()),
+            bool(Quartz.CGPreflightPostEventAccess()))
+    except Exception as e:  # older macOS without the preflight API
+        return "?(%s)" % e
+
+
+def _ensure_event_access():
+    """The dictation-key tap needs Input Monitoring (listen access) and the
+    Cmd+V paste needs Accessibility (post access). Request whichever is missing
+    so macOS adds "Orac Voice" to those lists and shows its own prompt. A fresh
+    bundle identity (e.g. after repackaging) starts ungranted; the grant only
+    takes effect on the NEXT launch, since the tap is created once at startup.
+    Returns (listen, post) booleans for the CURRENT launch."""
+    if not IS_MAC:
+        return True, True
+    listen = bool(Quartz.CGPreflightListenEventAccess())
+    post = bool(Quartz.CGPreflightPostEventAccess())
+    if not listen:
+        Quartz.CGRequestListenEventAccess()  # prompt + add to Input Monitoring
+    if not post:
+        Quartz.CGRequestPostEventAccess()    # prompt + add to Accessibility
+    return listen, post
+
+
 def setup_hotkey_tap(on_down, on_up, on_escape=None):
     """Listens for the dictation key (flagsChanged) + Escape (keyDown) via
     CGEventTap on the current runloop. Non-blocking: the caller runs the loop."""
@@ -125,9 +154,9 @@ def setup_hotkey_tap(on_down, on_up, on_escape=None):
         callback, None)
     if tap is None:
         print("ERROR: macOS did not allow keyboard listening.\n"
-              "  System Settings → Privacy & Security → Input Monitoring: enable your Terminal\n"
-              "  System Settings → Privacy & Security → Accessibility: enable your Terminal\n"
-              "  Then close and reopen the Terminal and run flow.py again")
+              "  System Settings → Privacy & Security → Input Monitoring: enable 'Orac Voice'\n"
+              "  System Settings → Privacy & Security → Accessibility: enable 'Orac Voice'\n"
+              "  Then close and reopen Orac Voice")
         sys.exit(1)
     src = Quartz.CFMachPortCreateRunLoopSource(None, tap, 0)
     Quartz.CFRunLoopAddSource(Quartz.CFRunLoopGetCurrent(), src,
@@ -1056,6 +1085,13 @@ def main():
     if len(sys.argv) == 3 and sys.argv[1] == "--test":
         run_test(sys.argv[2])
         return
+    if getattr(sys, "frozen", False):  # py2app bundle: no terminal -> tee to a log
+        _logdir = BASE / ".tmp"
+        _logdir.mkdir(exist_ok=True)
+        _lf = open(_logdir / "orac.log", "a", buffering=1, encoding="utf-8")
+        sys.stdout = sys.stderr = _lf
+        print("--- launch", time.strftime("%Y-%m-%d %H:%M:%S"),
+              "AXTrusted=", _ax_trusted())
     global _sd, PILL
     import sounddevice
     _sd = sounddevice
@@ -1072,10 +1108,19 @@ def main():
         open_stream()
         PILL = pillmod.Pill(on_cancel=cancel_dictation, on_confirm=confirm_dictation)
         pillmod.make_menubar()
+        listen, post = _ensure_event_access()
         setup_hotkey_tap(on_fn_down, on_fn_up, on_escape=cancel_dictation)
         splash.finish()
-        print(f"Orac Voice ready. Hold {CFG['hotkey']['label']} to dictate; "
-              f"double-tap = hands-free. Settings: http://127.0.0.1:{UI_PORT}")
+        if listen and post:
+            print(f"Orac Voice ready. Hold {CFG['hotkey']['label']} to dictate; "
+                  f"double-tap = hands-free. Settings: http://127.0.0.1:{UI_PORT}")
+        else:
+            # tap is created but macOS won't deliver key events until granted
+            print("Orac Voice is running but CANNOT dictate yet "
+                  f"(listen={listen}, post={post}). Enable 'Orac Voice' in System "
+                  "Settings -> Privacy & Security -> Input Monitoring AND "
+                  "Accessibility, then reopen the app.")
+            pillmod.open_settings()  # make the app visible instead of silently dead
 
     def _boot():
         splash.progress(0.30)
