@@ -348,21 +348,22 @@ class Splash:
 
 def make_app():
     """Regular Dock app: running dot, launch bounce, and clicking the Dock icon
-    reopens Settings. The menu bar icon (make_menubar) stays too. Packaged with
-    py2app (setup.py / make-app.sh), so the Dock identity now comes from the
-    bundle itself (CFBundleName + CFBundleIconFile) instead of the old runtime
-    process-name hack."""
+    reopens Settings. The menu bar icon (make_menubar) stays too. The app runs
+    as .venv/bin/python (a hand-rolled bundle, see make-app.sh) so the dictation
+    key + paste keep the already-granted 'python3.14' TCC identity; the Dock
+    would otherwise label the tile "Python", so we override the Dock icon and
+    process name to show Orac Voice's identity."""
     app = NSApplication.sharedApplication()
     app.setActivationPolicy_(NSApplicationActivationPolicyRegular)
     import os
     from AppKit import NSImage
+    from Foundation import NSProcessInfo
     icns = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "assets", "AppIcon.icns")
     img = NSImage.alloc().initWithContentsOfFile_(icns)
     if img:
-        # ponytail: redundant with CFBundleIconFile under py2app, but a one-liner
-        # that keeps the lime Dock icon when flow.py is run bare from the terminal
         app.setApplicationIconImage_(img)
+    NSProcessInfo.processInfo().setProcessName_("Orac Voice")
     if not _app_delegate_ref:
         d = _AppDelegate.alloc().init()
         app.setDelegate_(d)
