@@ -10,8 +10,10 @@ from collections import deque
 
 import objc
 from AppKit import (NSApplication, NSApplicationActivationPolicyRegular,
-                    NSBackingStoreBuffered, NSBezierPath, NSColor, NSFont,
-                    NSFontAttributeName, NSForegroundColorAttributeName, NSMenu,
+                    NSBackingStoreBuffered, NSBezierPath, NSColor,
+                    NSCompositingOperationSourceOver, NSFont,
+                    NSFontAttributeName, NSForegroundColorAttributeName, NSImage,
+                    NSMenu,
                     NSMenuItem, NSPanel, NSScreen, NSShadow, NSStatusBar, NSView,
                     NSVariableStatusItemLength, NSViewHeightSizable,
                     NSViewWidthSizable, NSWindow,
@@ -29,6 +31,7 @@ UI_URL = "http://127.0.0.1:8091"
 # Higgsfield palette
 LIME = NSColor.colorWithSRGBRed_green_blue_alpha_(0.80, 1.0, 0.0, 1.0)   # CCFF00
 DARK = NSColor.colorWithSRGBRed_green_blue_alpha_(0.078, 0.078, 0.078, 0.97)  # 141414
+BLACK = NSColor.colorWithSRGBRed_green_blue_alpha_(0.0, 0.0, 0.0, 1.0)  # splash: matches the logo bg
 GRAY = NSColor.colorWithSRGBRed_green_blue_alpha_(0.18, 0.18, 0.18, 1.0)
 WHITE = NSColor.whiteColor()
 INK = NSColor.colorWithSRGBRed_green_blue_alpha_(0.04, 0.04, 0.04, 1.0)
@@ -246,7 +249,8 @@ def open_settings():
 
 
 # -------------------------------------------------------------- launch splash
-SW, SH = 300, 104  # splash window size
+SW, SH = 240, 250   # splash window size
+LOGO_PX = 180       # withName brand drawn inside it
 
 
 class _SplashView(NSView):
@@ -255,12 +259,16 @@ class _SplashView(NSView):
         if self:
             self.disp = 0.0       # displayed progress (eases toward target)
             self.target = 0.06
+            import os
+            self.logo = NSImage.alloc().initWithContentsOfFile_(
+                os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "assets", "logo-wordmark.png"))
         return self
 
     def drawRect_(self, rect):
         body = NSBezierPath.bezierPathWithRoundedRect_xRadius_yRadius_(
-            ((4, 4), (SW - 8, SH - 8)), 18, 18)
-        DARK.setFill()
+            ((4, 4), (SW - 8, SH - 8)), 22, 22)
+        BLACK.setFill()  # pure black so the logo's black square blends seamlessly
         body.fill()
         glow = NSShadow.alloc().init()
         glow.setShadowColor_(LIME.colorWithAlphaComponent_(0.7))
@@ -272,14 +280,14 @@ class _SplashView(NSView):
         body.stroke()
         NSShadow.alloc().init().set()  # shadow off for the rest
 
-        title = NSAttributedString.alloc().initWithString_attributes_(
-            "Opening Orac Voice", {
-                NSFontAttributeName: NSFont.systemFontOfSize_weight_(15, 0.3),
-                NSForegroundColorAttributeName: WHITE})
-        sz = title.size()
-        title.drawAtPoint_(((SW - sz.width) / 2.0, SH - 44))
+        if self.logo:  # withName brand: mic + waveform + OracVoice
+            lx = (SW - LOGO_PX) / 2.0
+            ly = SH - 16 - LOGO_PX
+            self.logo.drawInRect_fromRect_operation_fraction_(
+                ((lx, ly), (LOGO_PX, LOGO_PX)), ((0, 0), (0, 0)),
+                NSCompositingOperationSourceOver, 1.0)
 
-        tx, tw, th, ty = 28, SW - 56, 7, 32
+        tx, tw, th, ty = 28, SW - 56, 7, 26
         track = NSBezierPath.bezierPathWithRoundedRect_xRadius_yRadius_(
             ((tx, ty), (tw, th)), th / 2, th / 2)
         GRAY.setFill()
