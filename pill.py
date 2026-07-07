@@ -249,8 +249,8 @@ def open_settings():
 
 
 # -------------------------------------------------------------- launch splash
-SW, SH = 240, 250   # splash window size
-LOGO_PX = 180       # withName brand drawn inside it
+SW, SH = 344, 150         # landscape splash window
+LOGO_W, LOGO_H = 284, 85  # horizontal wordmark (~3.36:1)
 
 
 class _SplashView(NSView):
@@ -262,7 +262,7 @@ class _SplashView(NSView):
             import os
             self.logo = NSImage.alloc().initWithContentsOfFile_(
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                             "assets", "logo-wordmark.png"))
+                             "assets", "logo-wordmark-h.png"))
         return self
 
     def drawRect_(self, rect):
@@ -280,14 +280,14 @@ class _SplashView(NSView):
         body.stroke()
         NSShadow.alloc().init().set()  # shadow off for the rest
 
-        if self.logo:  # withName brand: mic + waveform + OracVoice
-            lx = (SW - LOGO_PX) / 2.0
-            ly = SH - 16 - LOGO_PX
+        if self.logo:  # horizontal brand: mic + waveform + OracVoice
+            lx = (SW - LOGO_W) / 2.0
+            ly = SH - 18 - LOGO_H
             self.logo.drawInRect_fromRect_operation_fraction_(
-                ((lx, ly), (LOGO_PX, LOGO_PX)), ((0, 0), (0, 0)),
+                ((lx, ly), (LOGO_W, LOGO_H)), ((0, 0), (0, 0)),
                 NSCompositingOperationSourceOver, 1.0)
 
-        tx, tw, th, ty = 28, SW - 56, 7, 26
+        tx, tw, th, ty = 28, SW - 56, 7, 20
         track = NSBezierPath.bezierPathWithRoundedRect_xRadius_yRadius_(
             ((tx, ty), (tw, th)), th / 2, th / 2)
         GRAY.setFill()
