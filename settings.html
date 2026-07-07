@@ -161,12 +161,17 @@
   .item time {
     color: var(--lime); font: 500 12px "Inter", sans-serif; opacity: .9;
   }
-  .item .acts { display: flex; gap: 6px; }
+  .item .acts { display: flex; align-items: center; gap: 6px; }
   .item .acts button {
-    background: none; border: none; color: var(--dim); cursor: pointer;
-    font-size: 14px; padding: 2px 6px; border-radius: 6px;
+    background: none; border: none; color: var(--lime); cursor: pointer;
+    font-size: 15px; line-height: 1; padding: 3px 6px; border-radius: 6px;
+    transition: background .15s;
   }
-  .item .acts button:hover { color: var(--txt); background: #1f1f1f; }
+  .item .acts button svg {
+    width: 15px; height: 15px; display: block; stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .item .acts button:hover { background: rgba(204, 255, 0, .12); }
   .item p { color: #d6d6d6; font-size: 14px; word-wrap: break-word; }
   .empty { color: var(--dim); text-align: center; padding: 30px 0; font-size: 14px; }
   #badges {
@@ -670,7 +675,7 @@ function render() {
     const div = document.createElement("div");
     div.className = "item";
     div.innerHTML = `<div class="meta"><time>${d.toLocaleDateString("en-US", {day: "2-digit", month: "short"})} · ${d.toLocaleTimeString("en-US", {hour: "2-digit", minute: "2-digit"})}</time>
-      <div class="acts"><button title="Copy">⧉</button><button title="Delete">✕</button></div></div><p></p>`;
+      <div class="acts"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><button title="Delete">✕</button></div></div><p></p>`;
     div.querySelector("p").textContent = it.text;
     const [copy, del] = div.querySelectorAll(".acts button");
     copy.onclick = () => { navigator.clipboard.writeText(it.text); toast("Copied"); };
