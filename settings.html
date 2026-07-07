@@ -20,44 +20,46 @@
     --txt: #f2f2f2; --dim: #8a8a8a; --lime: #ccff00; --ink: #0a0a0a;
   }
   * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
   body {
     background: var(--bg); color: var(--txt);
-    font: 15px/1.5 "Inter", -apple-system, system-ui, sans-serif;
-    max-width: 680px; margin: 0 auto; padding: 40px 20px 80px;
+    font: 14px/1.5 "Inter", -apple-system, system-ui, sans-serif;
+    max-width: 720px; margin: 0 auto; padding: 22px 26px 20px;
+    display: flex; flex-direction: column; overflow: hidden;
   }
-  header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-  header svg { width: 34px; height: 34px; flex: none; }
+  header { display: flex; align-items: center; gap: 11px; margin-bottom: 10px; }
+  header svg { width: 29px; height: 29px; flex: none; }
   h1 {
-    font: 600 32px "Poppins", -apple-system, sans-serif;
+    font: 600 27px "Poppins", -apple-system, sans-serif;
     letter-spacing: -.01em; text-transform: uppercase; color: var(--lime);
   }
   h1 .voice { color: #fff; }
   .card {
     background: var(--card); border: 1px solid var(--line);
-    border-radius: 16px; padding: 6px 20px; margin-bottom: 20px;
+    border-radius: 15px; padding: 4px 18px; margin-bottom: 18px;
   }
   .row {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line);
+    gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line);
   }
   .row:last-child { border-bottom: none; }
-  .row .label { display: flex; align-items: center; gap: 13px; }
-  .row .label b { display: block; font-size: 15px; font-weight: 600; }
-  .row .label small { color: var(--dim); font-size: 13px; }
+  .row .label { display: flex; align-items: center; gap: 12px; }
+  .row .label b { display: block; font-size: 14px; font-weight: 600; }
+  .row .label small { color: var(--dim); font-size: 12.5px; }
   .ic {
-    width: 36px; height: 36px; border-radius: 10px; flex: none;
+    width: 31px; height: 31px; border-radius: 9px; flex: none;
     background: rgba(204, 255, 0, .08); border: 1px solid rgba(204, 255, 0, .18);
     display: flex; align-items: center; justify-content: center;
   }
   .ic svg {
-    width: 17px; height: 17px; stroke: var(--lime); fill: none;
+    width: 15px; height: 15px; stroke: var(--lime); fill: none;
     stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
   }
-  .ic.sm { width: 28px; height: 28px; border-radius: 8px; }
-  .ic.sm svg { width: 14px; height: 14px; }
+  .ic.sm { width: 25px; height: 25px; border-radius: 8px; }
+  .ic.sm svg { width: 13px; height: 13px; }
   select {
     background: #262626; color: var(--txt); border: 1px solid #383838;
-    border-radius: 10px; padding: 8px 12px; font: inherit; font-size: 14px;
+    border-radius: 10px; padding: 7px 11px; font: inherit; font-size: 13px;
     max-width: 280px; cursor: pointer; outline: none;
     box-shadow: 0 3px 0 #000;
   }
@@ -67,7 +69,7 @@
   .seg { display: flex; gap: 6px; flex-wrap: wrap; }
   .seg button {
     background: #262626; color: var(--txt); border: 1px solid #383838;
-    border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 13px;
+    border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12.5px;
     cursor: pointer; transition: all .15s;
     box-shadow: 0 3px 0 #000;  /* pushable relief */
   }
@@ -88,13 +90,13 @@
   }
   .seg button.pulse { animation: pulseGlow 2.2s ease-in-out infinite; }
   .switch {
-    position: relative; width: 52px; height: 30px; border-radius: 999px;
+    position: relative; width: 46px; height: 26px; border-radius: 999px;
     background: #262626; border: 1px solid #383838; cursor: pointer;
     transition: all .2s; flex: none; box-shadow: 0 3px 0 #000;
   }
   .switch::after {
     content: ""; position: absolute; top: 3px; left: 3px;
-    width: 22px; height: 22px; border-radius: 50%; background: #8a8a8a;
+    width: 18px; height: 18px; border-radius: 50%; background: #8a8a8a;
     transition: all .2s;
   }
   .switch:hover { transform: translateY(-1px); border-color: rgba(204, 255, 0, .4); }
@@ -102,7 +104,7 @@
     background: var(--lime); border-color: var(--lime);
     box-shadow: 0 3px 0 #7f9e00, 0 0 12px rgba(204, 255, 0, .3);
   }
-  .switch.on::after { left: 25px; background: var(--ink); }
+  .switch.on::after { left: 21px; background: var(--ink); }
   .help {
     display: inline-flex; align-items: center; justify-content: center;
     width: 16px; height: 16px; border-radius: 50%; margin-left: 6px;
@@ -120,8 +122,8 @@
   .help:hover .tip { opacity: 1; }
   #quit {
     margin-left: auto; background: #ff153f; color: #fff;
-    border: 1px solid #ff153f; border-radius: 999px; padding: 7px 16px;
-    font: 600 12px "Inter", sans-serif; cursor: pointer;
+    border: 1px solid #ff153f; border-radius: 999px; padding: 6px 14px;
+    font: 600 11.5px "Inter", sans-serif; cursor: pointer;
     box-shadow: 0 3px 0 #8f0b24; transition: all .15s;
   }
   #quit:hover { box-shadow: 0 3px 0 #8f0b24, 0 0 14px rgba(255, 21, 63, .45); transform: translateY(-2px); }
@@ -150,32 +152,7 @@
   }
   h2 button:hover { color: #ff6b6b; border-color: #ff6b6b; transform: translateY(-2px); }
   h2 button:active { transform: translateY(2px); box-shadow: 0 0 0 #000; }
-  #histbar {
-    cursor: pointer; user-select: none;
-    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px 16px; margin: 28px 0 10px;
-    transition: border-color .25s;
-  }
-  #histbar:hover { border-color: rgba(204, 255, 0, .45); }
-  #histbar .hleft, #histbar .hright { display: flex; align-items: center; gap: 10px; }
-  #histbar .chev {
-    display: inline-block; color: var(--lime); font-size: 11px;
-    transition: transform .35s cubic-bezier(.4, 0, .2, 1);
-    text-shadow: 0 0 6px rgba(204, 255, 0, .6);
-    transform: rotate(180deg);  /* open: points up (collapse) */
-  }
-  #histbar.closed .chev { transform: rotate(0deg); }  /* closed: expand ↓ */
   #histcount { color: var(--lime); font-weight: 700; margin-left: 2px; }
-  .collapse {
-    display: grid; grid-template-rows: 1fr;
-    transition: grid-template-rows .45s cubic-bezier(.4, 0, .2, 1);
-  }
-  .collapse.closed { grid-template-rows: 0fr; }
-  .collapse > div { overflow: hidden; }
-  .collapse .card {
-    transition: opacity .3s ease, transform .4s cubic-bezier(.4, 0, .2, 1);
-  }
-  .collapse.closed .card { opacity: 0; transform: translateY(-10px); }
   .item { padding: 14px 0; border-bottom: 1px solid var(--line); }
   .item:last-child { border-bottom: none; }
   .item .meta {
@@ -194,7 +171,7 @@
   .empty { color: var(--dim); text-align: center; padding: 30px 0; font-size: 14px; }
   #badges {
     display: flex; gap: 8px; flex-wrap: wrap;
-    margin: 0 0 26px 38px;
+    margin: 0 0 16px 40px;
   }
   .badge {
     display: flex; align-items: center; gap: 6px;
@@ -207,13 +184,12 @@
     box-shadow: 0 0 5px var(--lime);
   }
   #howto {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
     margin-bottom: 20px;
   }
-  @media (max-width: 640px) { #howto { grid-template-columns: repeat(2, 1fr); } }
   #privbox {
     border: .5px solid rgba(255, 21, 63, .75); border-radius: 16px;
-    padding: 18px 20px 12px; margin: 28px 0 20px;
+    padding: 18px 20px 12px; margin: 8px 0 20px;
     box-shadow: 0 0 14px rgba(255, 21, 63, .08);
   }
   #privbox h2 { margin: 0 0 10px 4px; }
@@ -247,10 +223,16 @@
     font-size: 13px; line-height: 1.55;
   }
   .accbody em { color: var(--lime); font-style: normal; font-weight: 600; }
+  .collapse {
+    display: grid; grid-template-rows: 1fr;
+    transition: grid-template-rows .45s cubic-bezier(.4, 0, .2, 1);
+  }
+  .collapse.closed { grid-template-rows: 0fr; }
+  .collapse > div { overflow: hidden; }
   .stepcard {
     position: relative; background: var(--card); border: 1px solid var(--line);
-    border-radius: 14px; padding: 16px 14px 14px;
-    display: flex; flex-direction: column; gap: 10px;
+    border-radius: 13px; padding: 13px 13px 12px;
+    display: flex; flex-direction: column; gap: 8px;
     transition: border-color .25s, transform .25s;
   }
   .stepcard:hover { border-color: rgba(204, 255, 0, .4); transform: translateY(-3px); }
@@ -302,7 +284,7 @@
   .btn-lime:hover { box-shadow: 0 3px 0 #7f9e00, 0 0 14px rgba(204, 255, 0, .35); }
   .btn-lime:active { transform: translateY(2px); box-shadow: 0 1px 0 #7f9e00; }
   #uninstall {
-    display: block; margin: 6px auto 0; background: none; border: none;
+    display: block; margin: 8px auto 0; background: none; border: none;
     color: #5a5a5a; font: 500 12px "Inter", sans-serif; cursor: pointer;
     text-decoration: underline; text-underline-offset: 3px; transition: color .15s;
   }
@@ -323,6 +305,44 @@
     box-shadow: 0 0 20px rgba(204,255,0,.4);
   }
   #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* --- tabbed shell (Settings / Dictionary / History | How to use) --- */
+  /* Header + sidebar stay put; only #content scrolls (native settings feel). */
+  #shell { flex: 1; min-height: 0; display: flex; gap: 18px; align-items: stretch; }
+  #sidebar { width: 144px; flex: none; display: flex; flex-direction: column; gap: 5px; }
+  .tab {
+    display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+    background: transparent; border: 1px solid transparent; border-radius: 10px;
+    color: var(--dim); font: 600 13.5px "Inter", sans-serif; padding: 9px 11px;
+    cursor: pointer; transition: all .15s;
+  }
+  .tab svg {
+    width: 15px; height: 15px; flex: none; stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .tab:hover { color: var(--txt); background: var(--card); }
+  .tab.active {
+    color: var(--ink); background: var(--lime); border-color: var(--lime);
+    font-weight: 700; box-shadow: 0 3px 0 #7f9e00, 0 0 12px rgba(204, 255, 0, .25);
+  }
+  .tab.howto-tab { margin-top: auto; }
+  #content { flex: 1; min-width: 0; overflow-y: auto; padding-right: 2px; }
+  .panel { display: none; }
+  .panel.active { display: block; animation: panelIn .32s cubic-bezier(.4, 0, .2, 1); }
+  @keyframes panelIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  .panelhead { margin-top: 4px; }
+  .panelhead .hleft { display: flex; align-items: center; gap: 10px; }
+  @media (max-width: 560px) {
+    body { height: auto; overflow: auto; }
+    #shell { flex-direction: column; }
+    #sidebar { width: auto; flex-direction: row; flex-wrap: wrap; }
+    .tab { width: auto; }
+    .tab.howto-tab { margin-top: 0; }
+    #content { overflow-y: visible; }
+  }
 </style>
 </head>
 <body>
@@ -338,130 +358,159 @@
 </header>
 <div id="badges"></div>
 
-<div class="card">
-  <div class="row">
-    <div class="label">
-      <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M9 15.5h6"/></svg></div>
-      <div><b>Dictation key</b>
-      <small>Pick your key to bind: click the button and press any modifier key</small></div>
-    </div>
-    <div class="seg" id="hotkey"></div>
-  </div>
-  <div class="row">
-    <div class="label">
-      <div class="ic"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/></svg></div>
-      <div><b>Microphone</b><small>Audio input</small></div>
-    </div>
-    <select id="mic"></select>
-  </div>
-  <div class="row">
-    <div class="label">
-      <div class="ic"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/><line x1="3" y1="3" x2="21" y2="21"/></svg></div>
-      <div><b>Microphone access</b>
-      <small>Off releases the mic (no "in use" indicator) · dictation pauses until you turn it back on</small></div>
-    </div>
-    <div class="switch" id="micen" title="Microphone on/off"></div>
-  </div>
-  <div class="row">
-    <div class="label">
-      <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></div>
-      <div><b>Filler cleaner<span class="help">?<span class="tip">After transcription, a small AI language model deletes filler words like "um", "uh" and "you know" before the text is pasted, keeping everything else exactly as you said it. On <em>Whisper</em> and <em>Parakeet</em> it runs on this computer (Llama 3.2 through Ollama); on <em>Groq</em> it runs on Groq's API. Off pastes exactly what the engine heard: a bit faster and uses less memory.</span></span></b>
-      <small>Removes filler words before pasting</small></div>
-    </div>
-    <div class="switch" id="cleaner" title="Filler cleaner on/off"></div>
-  </div>
-  <div class="row">
-    <div class="label">
-      <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
-      <div><b>Language</b><small>Dictation detection</small></div>
-    </div>
-    <div class="seg" id="langs"></div>
-  </div>
-  <div class="row">
-    <div class="label">
-      <div class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg></div>
-      <div><b>Engine<span class="help">?<span class="tip"><b>Whisper</b> (local)<br>Runs on this computer, your audio never leaves it. Best at mixing Spanish and English in the same sentence. Needs powerful hardware (Apple Silicon or an NVIDIA GPU).<br><br><b>Parakeet</b> (local) <span style="color:var(--lime);font-weight:600">(recommended)</span><br>Also 100% on this computer, and much faster, even without a GPU. One language per phrase: mixing languages mid-sentence can drop words. First use downloads the model (~700MB).<br><br><b>Groq</b> (cloud)<br>Processes the dictation on a private cloud API that doesn't store your audio or use it for data training. Fast on any computer.</span></span></b>
-      <small>All private · Whisper &amp; Parakeet run on this computer</small></div>
-    </div>
-    <div class="seg" id="engine" style="flex-wrap:nowrap"></div>
+<div id="shell">
+  <nav id="sidebar">
+    <button class="tab active" data-tab="settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+    <button class="tab" data-tab="dictionary">
+      <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Dictionary
+    </button>
+    <button class="tab" data-tab="history">
+      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8M3 3v5h5M12 7v5l4 2"/></svg>
+      History
+    </button>
+    <button class="tab howto-tab" data-tab="howto">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg>
+      How to use
+    </button>
+  </nav>
+
+  <div id="content">
+    <!-- SETTINGS -->
+    <section class="panel active" id="p-settings">
+      <div class="card">
+        <div class="row">
+          <div class="label">
+            <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M9 15.5h6"/></svg></div>
+            <div><b>Dictation key</b>
+            <small>Pick your key to bind: click the button and press any modifier key</small></div>
+          </div>
+          <div class="seg" id="hotkey"></div>
+        </div>
+        <div class="row">
+          <div class="label">
+            <div class="ic"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/></svg></div>
+            <div><b>Microphone</b><small>Audio input</small></div>
+          </div>
+          <select id="mic"></select>
+        </div>
+        <div class="row">
+          <div class="label">
+            <div class="ic"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/><line x1="3" y1="3" x2="21" y2="21"/></svg></div>
+            <div><b>Microphone access</b>
+            <small>Off releases the mic (no "in use" indicator) · dictation pauses until you turn it back on</small></div>
+          </div>
+          <div class="switch" id="micen" title="Microphone on/off"></div>
+        </div>
+        <div class="row">
+          <div class="label">
+            <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></div>
+            <div><b>Filler cleaner<span class="help">?<span class="tip">After transcription, a small AI language model deletes filler words like "um", "uh" and "you know" before the text is pasted, keeping everything else exactly as you said it. On <em>Whisper</em> and <em>Parakeet</em> it runs on this computer (Llama 3.2 through Ollama); on <em>Groq</em> it runs on Groq's API. Off pastes exactly what the engine heard: a bit faster and uses less memory.</span></span></b>
+            <small>Removes filler words before pasting</small></div>
+          </div>
+          <div class="switch" id="cleaner" title="Filler cleaner on/off"></div>
+        </div>
+        <div class="row">
+          <div class="label">
+            <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+            <div><b>Language</b><small>Dictation detection</small></div>
+          </div>
+          <div class="seg" id="langs"></div>
+        </div>
+        <div class="row">
+          <div class="label">
+            <div class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg></div>
+            <div><b>Engine<span class="help">?<span class="tip"><b>Whisper</b> (local)<br>Runs on this computer, your audio never leaves it. Best at mixing Spanish and English in the same sentence. Needs powerful hardware (Apple Silicon or an NVIDIA GPU).<br><br><b>Parakeet</b> (local) <span style="color:var(--lime);font-weight:600">(recommended)</span><br>Also 100% on this computer, and much faster, even without a GPU. One language per phrase: mixing languages mid-sentence can drop words. First use downloads the model (~700MB).<br><br><b>Groq</b> (cloud)<br>Processes the dictation on a private cloud API that doesn't store your audio or use it for data training. Fast on any computer.</span></span></b>
+            <small>All private · Whisper &amp; Parakeet run on this computer</small></div>
+          </div>
+          <div class="seg" id="engine" style="flex-wrap:nowrap"></div>
+        </div>
+      </div>
+      <button id="uninstall">Uninstall Orac Voice</button>
+    </section>
+
+    <!-- DICTIONARY -->
+    <section class="panel" id="p-dictionary">
+      <div class="card">
+        <div class="row">
+          <div class="label">
+            <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+            <div><b>Custom words</b>
+            <small>Type a word as it should be typed, click Record and say it once</small></div>
+          </div>
+          <div class="seg" style="flex-wrap:nowrap"><input id="dictword" placeholder="e.g. n8n" maxlength="40"><button id="dictrec"><span class="recdot">●</span> Record</button></div>
+        </div>
+        <div id="dictlist"></div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="panel" id="p-history">
+      <h2 class="panelhead">
+        <span class="hleft"><span class="ic sm"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8M3 3v5h5M12 7v5l4 2"/></svg></span> History <span id="histcount"></span></span>
+        <button id="clear">Clear all</button>
+      </h2>
+      <div class="card" id="history"></div>
+    </section>
+
+    <!-- HOW TO USE -->
+    <section class="panel" id="p-howto">
+      <div id="howto">
+        <div class="stepcard"><span class="n">01</span>
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 4l7.5 17 2.3-7.2L21 11.5z"/></svg></div>
+          <b>Click a text field</b>
+          <small>Notes, Claude, Codex, Emails, Chats, anywhere your cursor blinks.</small>
+        </div>
+        <div class="stepcard"><span class="n">02</span>
+          <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M9 15.5h6"/></svg></div>
+          <b>Hold <em class="hk-label">your key</em> &amp; speak</b>
+          <small>Release the key when you're done talking.</small>
+        </div>
+        <div class="stepcard"><span class="n">03</span>
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M5 7V4h14v3M12 4v16M9 20h6"/></svg></div>
+          <b>Text appears</b>
+          <small>Typed at your cursor: cleaned, punctuated, no fillers.</small>
+        </div>
+        <div class="stepcard"><span class="n">04</span>
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M8 21v-3.4L4.9 12.5a1.6 1.6 0 0 1 2.8-1.6l1.2 2.1V5.5a1.5 1.5 0 0 1 3 0V12M16 21v-3.4l3.1-5.1a1.6 1.6 0 0 0-2.8-1.6l-1.2 2.1V5.5a1.5 1.5 0 0 0-3 0V12"/></svg></div>
+          <b>Hands-free</b>
+          <small>Double-tap <em class="hk-label">your key</em> to start · tap once to finish · Esc cancels.</small>
+        </div>
+      </div>
+
+      <div id="privbox">
+      <h2 id="privtitle" style="cursor:default"><span class="hleft"><span class="ic sm qic">?</span> How your data stays private</span></h2>
+      <p id="privintro">Orac Voice works as a two-step system. Here's how it works:</p>
+      <div id="privacy">
+        <div class="acc">
+          <div class="accbar">
+            <span class="hleft"><span class="accnum">01</span><span class="ic sm"><svg viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg></span> Turning your voice into text</span>
+            <span class="chev">▼</span>
+          </div>
+          <div class="collapse closed"><div><p class="accbody">The transcription engine listens to your recording and writes down exactly what you said. On <em>Whisper</em> and <em>Parakeet</em> it runs on this computer and your audio never leaves it. On <em>Groq</em> the audio travels over an encrypted connection to Groq's API, which doesn't store it and doesn't use it for data training.</p></div></div>
+        </div>
+        <div class="acc">
+          <div class="accbar">
+            <span class="hleft"><span class="accnum">02</span><span class="ic sm"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/></svg></span> Cleaning up the text</span>
+            <span class="chev">▼</span>
+          </div>
+          <div class="collapse closed"><div><p class="accbody">A small AI language model (LLM) removes filler words ("um", "o sea") and fixes punctuation and capitalization, nothing else. On <em>Local</em> it's Llama 3.2 running through Ollama, a free open-source tool, entirely on this computer; on <em>Groq</em> it's a larger Llama model on the same private API. A safety check makes sure it never changes your words: if it tries, you get your exact original transcription instead.</p></div></div>
+        </div>
+        <div class="acc">
+          <div class="accbar">
+            <span class="hleft"><span class="accnum">03</span><span class="ic sm"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span> What stays here</span>
+            <span class="chev">▼</span>
+          </div>
+          <div class="collapse closed"><div><p class="accbody">Your dictation history and custom dictionary are plain files on this computer. They're never uploaded anywhere, and "Clear all" wipes the history whenever you want.</p></div></div>
+        </div>
+      </div>
+      </div>
+    </section>
   </div>
 </div>
-
-<h2 style="cursor:default"><span>Dictionary</span></h2>
-<div class="card">
-  <div class="row">
-    <div class="label">
-      <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-      <div><b>Custom words</b>
-      <small>Type a word as it should be typed, click Record and say it once</small></div>
-    </div>
-    <div class="seg" style="flex-wrap:nowrap"><input id="dictword" placeholder="e.g. n8n" maxlength="40"><button id="dictrec"><span class="recdot">●</span> Record</button></div>
-  </div>
-  <div id="dictlist"></div>
-</div>
-
-<h2 style="cursor:default"><span>How to use</span></h2>
-<div id="howto">
-  <div class="stepcard"><span class="n">01</span>
-    <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 4l7.5 17 2.3-7.2L21 11.5z"/></svg></div>
-    <b>Click a text field</b>
-    <small>Notes, Claude, Codex, Emails, Chats, anywhere your cursor blinks.</small>
-  </div>
-  <div class="stepcard"><span class="n">02</span>
-    <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M9 15.5h6"/></svg></div>
-    <b>Hold <em class="hk-label">your key</em> &amp; speak</b>
-    <small>Release the key when you're done talking.</small>
-  </div>
-  <div class="stepcard"><span class="n">03</span>
-    <div class="ic"><svg viewBox="0 0 24 24"><path d="M5 7V4h14v3M12 4v16M9 20h6"/></svg></div>
-    <b>Text appears</b>
-    <small>Typed at your cursor: cleaned, punctuated, no fillers.</small>
-  </div>
-  <div class="stepcard"><span class="n">04</span>
-    <div class="ic"><svg viewBox="0 0 24 24"><path d="M8 21v-3.4L4.9 12.5a1.6 1.6 0 0 1 2.8-1.6l1.2 2.1V5.5a1.5 1.5 0 0 1 3 0V12M16 21v-3.4l3.1-5.1a1.6 1.6 0 0 0-2.8-1.6l-1.2 2.1V5.5a1.5 1.5 0 0 0-3 0V12"/></svg></div>
-    <b>Hands-free</b>
-    <small>Double-tap <em class="hk-label">your key</em> to start · tap once to finish · Esc cancels.</small>
-  </div>
-</div>
-
-<h2 id="histbar">
-  <span class="hleft">
-    <span class="ic sm"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8M3 3v5h5M12 7v5l4 2"/></svg></span>
-    History <span id="histcount"></span>
-  </span>
-  <span class="hright"><button id="clear">Clear all</button><span class="chev">▼</span></span>
-</h2>
-<div class="collapse" id="histwrap"><div><div class="card" id="history"></div></div></div>
-
-<div id="privbox">
-<h2 id="privtitle" style="cursor:default"><span class="hleft"><span class="ic sm qic">?</span> How your data stays private</span></h2>
-<p id="privintro">Orac Voice works as a two-step system. Here's how it works:</p>
-<div id="privacy">
-  <div class="acc">
-    <div class="accbar">
-      <span class="hleft"><span class="accnum">01</span><span class="ic sm"><svg viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg></span> Turning your voice into text</span>
-      <span class="chev">▼</span>
-    </div>
-    <div class="collapse closed"><div><p class="accbody">The transcription engine listens to your recording and writes down exactly what you said. On <em>Whisper</em> and <em>Parakeet</em> it runs on this computer and your audio never leaves it. On <em>Groq</em> the audio travels over an encrypted connection to Groq's API, which doesn't store it and doesn't use it for data training.</p></div></div>
-  </div>
-  <div class="acc">
-    <div class="accbar">
-      <span class="hleft"><span class="accnum">02</span><span class="ic sm"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/></svg></span> Cleaning up the text</span>
-      <span class="chev">▼</span>
-    </div>
-    <div class="collapse closed"><div><p class="accbody">A small AI language model (LLM) removes filler words ("um", "o sea") and fixes punctuation and capitalization, nothing else. On <em>Local</em> it's Llama 3.2 running through Ollama, a free open-source tool, entirely on this computer; on <em>Groq</em> it's a larger Llama model on the same private API. A safety check makes sure it never changes your words: if it tries, you get your exact original transcription instead.</p></div></div>
-  </div>
-  <div class="acc">
-    <div class="accbar">
-      <span class="hleft"><span class="accnum">03</span><span class="ic sm"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span> What stays here</span>
-      <span class="chev">▼</span>
-    </div>
-    <div class="collapse closed"><div><p class="accbody">Your dictation history and custom dictionary are plain files on this computer. They're never uploaded anywhere, and "Clear all" wipes the history whenever you want.</p></div></div>
-  </div>
-</div>
-</div>
-
-<button id="uninstall">Uninstall Orac Voice</button>
 
 <div id="welcome-overlay" class="overlay">
   <div class="modal">
@@ -697,16 +746,6 @@ document.getElementById("quit").onclick = async () => {
   await api("/api/quit", {});
   document.getElementById("quit-overlay").classList.add("show");
 };
-const histbar = document.getElementById("histbar");
-const histwrap = document.getElementById("histwrap");
-if (localStorage.histClosed === "1") {
-  histbar.classList.add("closed"); histwrap.classList.add("closed");
-}
-histbar.onclick = () => {
-  const closed = histbar.classList.toggle("closed");
-  histwrap.classList.toggle("closed", closed);
-  localStorage.histClosed = closed ? "1" : "0";
-};
 document.querySelectorAll(".acc .accbar").forEach(bar => {
   bar.onclick = () => {
     const acc = bar.parentElement;
@@ -749,6 +788,19 @@ document.getElementById("welcome-ok").onclick = () => {
   history.replaceState(null, "", "/");
 };
 wov.onclick = e => { if (e.target === wov) document.getElementById("welcome-ok").click(); };
+
+// --- tabs: keep every panel mounted (render() polls all of them), toggle .active ---
+const TABS = document.querySelectorAll(".tab");
+function showTab(name) {
+  TABS.forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+  document.querySelectorAll(".panel").forEach(
+    p => p.classList.toggle("active", p.id === "p-" + name));
+  localStorage.oracTab = name;
+}
+TABS.forEach(t => t.onclick = () => showTab(t.dataset.tab));
+const savedTab = localStorage.oracTab;
+showTab(savedTab && document.getElementById("p-" + savedTab) ? savedTab : "settings");
+
 load();
 setInterval(load, 5000);
 </script>
