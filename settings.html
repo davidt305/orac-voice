@@ -338,8 +338,15 @@
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: none; }
   }
-  .panelhead { margin-top: 4px; }
+  .panelhead { margin-top: 4px; cursor: pointer; user-select: none; }
   .panelhead .hleft { display: flex; align-items: center; gap: 10px; }
+  .panelhead .chev {
+    color: var(--lime); font-size: 11px; margin-left: 2px;
+    transition: transform .35s cubic-bezier(.4, 0, .2, 1);
+    text-shadow: 0 0 6px rgba(204, 255, 0, .6);
+    transform: rotate(180deg);  /* open: chevron points up (fold) */
+  }
+  .panelhead.closed .chev { transform: rotate(0deg); }  /* closed: points down (expand) */
   @media (max-width: 560px) {
     body { height: auto; overflow: auto; }
     #shell { flex-direction: column; }
@@ -454,11 +461,11 @@
 
     <!-- HISTORY -->
     <section class="panel" id="p-history">
-      <h2 class="panelhead">
-        <span class="hleft"><span class="ic sm"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8M3 3v5h5M12 7v5l4 2"/></svg></span> History <span id="histcount"></span></span>
+      <h2 class="panelhead" id="histbar">
+        <span class="hleft"><span class="ic sm"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8M3 3v5h5M12 7v5l4 2"/></svg></span> History <span id="histcount"></span> <span class="chev">▼</span></span>
         <button id="clear">Clear all</button>
       </h2>
-      <div class="card" id="history"></div>
+      <div class="collapse" id="histwrap"><div><div class="card" id="history"></div></div></div>
     </section>
 
     <!-- HOW TO USE -->
@@ -805,6 +812,18 @@ function showTab(name) {
 TABS.forEach(t => t.onclick = () => showTab(t.dataset.tab));
 const savedTab = localStorage.oracTab;
 showTab(savedTab && document.getElementById("p-" + savedTab) ? savedTab : "settings");
+
+// history collapses like an accordion (remembered); Clear all stops propagation
+const histbar = document.getElementById("histbar");
+const histwrap = document.getElementById("histwrap");
+if (localStorage.histClosed === "1") {
+  histbar.classList.add("closed"); histwrap.classList.add("closed");
+}
+histbar.onclick = () => {
+  const closed = histbar.classList.toggle("closed");
+  histwrap.classList.toggle("closed", closed);
+  localStorage.histClosed = closed ? "1" : "0";
+};
 
 load();
 setInterval(load, 5000);
