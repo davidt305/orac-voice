@@ -2,6 +2,8 @@ models/*
 !models/.gitkeep
 .venv/
 .tmp/
+build/
+dist/
 *.wav
 *.aiff
 !windows/test-audio.wav

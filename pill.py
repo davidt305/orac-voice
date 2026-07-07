@@ -13,12 +13,18 @@ from AppKit import (NSApplication, NSApplicationActivationPolicyRegular,
                     NSBackingStoreBuffered, NSBezierPath, NSColor, NSFont,
                     NSFontAttributeName, NSForegroundColorAttributeName, NSMenu,
                     NSMenuItem, NSPanel, NSScreen, NSShadow, NSStatusBar, NSView,
-                    NSVariableStatusItemLength,
+                    NSVariableStatusItemLength, NSViewHeightSizable,
+                    NSViewWidthSizable, NSWindow,
                     NSWindowCollectionBehaviorCanJoinAllSpaces,
                     NSWindowCollectionBehaviorFullScreenAuxiliary,
-                    NSWindowStyleMaskBorderless, NSWindowStyleMaskNonactivatingPanel)
-from Foundation import NSAttributedString, NSObject
+                    NSWindowStyleMaskBorderless, NSWindowStyleMaskClosable,
+                    NSWindowStyleMaskMiniaturizable, NSWindowStyleMaskNonactivatingPanel,
+                    NSWindowStyleMaskResizable, NSWindowStyleMaskTitled)
+from Foundation import NSAttributedString, NSObject, NSURL, NSURLRequest
 from PyObjCTools import AppHelper
+from WebKit import WKWebView, WKWebViewConfiguration
+
+UI_URL = "http://127.0.0.1:8091"
 
 # Higgsfield palette
 LIME = NSColor.colorWithSRGBRed_green_blue_alpha_(0.80, 1.0, 0.0, 1.0)   # CCFF00
@@ -192,10 +198,51 @@ _app_delegate_ref = []  # the delegate dies if the GC collects it
 
 class _AppDelegate(NSObject):
     def applicationShouldHandleReopen_hasVisibleWindows_(self, app, has_windows):
-        # clicking the Dock icon while running opens Settings in the browser
-        import webbrowser
-        webbrowser.open("http://127.0.0.1:8091")
+        open_settings()  # Dock click while running -> raise the settings window
         return True
+
+    def applicationShouldTerminateAfterLastWindowClosed_(self, app):
+        return False  # closing Settings just hides it; app lives in Dock + menu bar
+
+
+# ------------------------------------------------------ native settings window
+SETTINGS_W, SETTINGS_H = 760, 820  # matches settings.html's max-width + a bit
+_settings_ref = []  # keeps the window alive so closing it can reopen, not destroy
+
+
+class SettingsWindow:
+    """Native window with a WKWebView pointing at the local UI server. Closing
+    it (red button) hides it; the app keeps running in the Dock and menu bar,
+    and show() brings it back."""
+
+    def __init__(self, url=UI_URL):
+        style = (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
+                 | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable)
+        win = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
+            ((0, 0), (SETTINGS_W, SETTINGS_H)), style,
+            NSBackingStoreBuffered, False)
+        win.setTitle_("Orac Voice")
+        win.setReleasedWhenClosed_(False)  # survive close so we can reopen it
+        win.setMinSize_((560, 600))
+        web = WKWebView.alloc().initWithFrame_configuration_(
+            ((0, 0), (SETTINGS_W, SETTINGS_H)), WKWebViewConfiguration.alloc().init())
+        web.setAutoresizingMask_(NSViewWidthSizable | NSViewHeightSizable)
+        win.setContentView_(web)
+        web.loadRequest_(NSURLRequest.requestWithURL_(NSURL.URLWithString_(url)))
+        win.center()
+        self.win = win
+        self.web = web
+
+    def show(self):
+        self.win.makeKeyAndOrderFront_(None)
+        NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
+
+
+def open_settings():
+    """Show the native settings window, creating it on first use. Main thread."""
+    if not _settings_ref:
+        _settings_ref.append(SettingsWindow())
+    _settings_ref[0].show()
 
 
 # -------------------------------------------------------------- launch splash
@@ -301,20 +348,21 @@ class Splash:
 
 def make_app():
     """Regular Dock app: running dot, launch bounce, and clicking the Dock icon
-    reopens Settings. The menu bar icon (make_menubar) stays too. On Homebrew
-    Python the Dock would label the tile "Python", so we override the Dock icon
-    and process name to show Orac Voice's identity."""
+    reopens Settings. The menu bar icon (make_menubar) stays too. Packaged with
+    py2app (setup.py / make-app.sh), so the Dock identity now comes from the
+    bundle itself (CFBundleName + CFBundleIconFile) instead of the old runtime
+    process-name hack."""
     app = NSApplication.sharedApplication()
     app.setActivationPolicy_(NSApplicationActivationPolicyRegular)
     import os
     from AppKit import NSImage
-    from Foundation import NSProcessInfo
     icns = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "assets", "AppIcon.icns")
     img = NSImage.alloc().initWithContentsOfFile_(icns)
     if img:
+        # ponytail: redundant with CFBundleIconFile under py2app, but a one-liner
+        # that keeps the lime Dock icon when flow.py is run bare from the terminal
         app.setApplicationIconImage_(img)
-    NSProcessInfo.processInfo().setProcessName_("Orac Voice")
     if not _app_delegate_ref:
         d = _AppDelegate.alloc().init()
         app.setDelegate_(d)
@@ -327,8 +375,7 @@ class _MenuTarget(NSObject):
         NSApplication.sharedApplication().terminate_(None)
 
     def settings_(self, sender):
-        import webbrowser
-        webbrowser.open("http://127.0.0.1:8091")
+        open_settings()  # menu bar "Settings" -> native window
 
 
 _menubar_refs = []  # the status item dies if the GC collects it
