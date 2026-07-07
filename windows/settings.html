@@ -476,6 +476,14 @@
   </div>
 </div>
 
+<div id="quit-overlay" class="overlay">
+  <div class="modal">
+    <div class="ic" style="margin:0 auto 14px"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></div>
+    <h3>Orac Voice is closed</h3>
+    <p style="margin-bottom:0">It's no longer running in the background. You can close this tab now.</p>
+  </div>
+</div>
+
 <div id="uninstall-overlay" class="overlay">
   <div class="modal">
     <div id="uninstall-ask">
@@ -687,8 +695,7 @@ document.getElementById("dictword").addEventListener("keydown", e => {
 });
 document.getElementById("quit").onclick = async () => {
   await api("/api/quit", {});
-  document.body.style.opacity = ".35";
-  toast("Orac Voice closed");
+  document.getElementById("quit-overlay").classList.add("show");
 };
 const histbar = document.getElementById("histbar");
 const histwrap = document.getElementById("histwrap");

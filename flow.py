@@ -1056,22 +1056,34 @@ def main():
     if len(sys.argv) == 3 and sys.argv[1] == "--test":
         run_test(sys.argv[2])
         return
-    global _sd
+    global _sd, PILL
     import sounddevice
     _sd = sounddevice
-    start_ui_server()  # also acts as the single-instance lock
-    ensure_stt()
-    open_stream()
-
-    global PILL
     import pill as pillmod
     from PyObjCTools import AppHelper
-    pillmod.make_app()
-    PILL = pillmod.Pill(on_cancel=cancel_dictation, on_confirm=confirm_dictation)
-    pillmod.make_menubar()
-    setup_hotkey_tap(on_fn_down, on_fn_up, on_escape=cancel_dictation)
-    print(f"Orac Voice ready. Hold {CFG['hotkey']['label']} to dictate; "
-          f"double-tap = hands-free. Settings: http://127.0.0.1:{UI_PORT}")
+
+    start_ui_server()      # single-instance lock: exits here if already running
+    pillmod.make_app()     # Regular Dock app (running dot + bounce + reopen)
+    splash = pillmod.Splash()
+
+    def _ready():
+        # main thread, once the model is loaded: the parts that need the run loop
+        global PILL
+        open_stream()
+        PILL = pillmod.Pill(on_cancel=cancel_dictation, on_confirm=confirm_dictation)
+        pillmod.make_menubar()
+        setup_hotkey_tap(on_fn_down, on_fn_up, on_escape=cancel_dictation)
+        splash.finish()
+        print(f"Orac Voice ready. Hold {CFG['hotkey']['label']} to dictate; "
+              f"double-tap = hands-free. Settings: http://127.0.0.1:{UI_PORT}")
+
+    def _boot():
+        splash.progress(0.30)
+        ensure_stt()       # the real wait (Parakeet/whisper load)
+        splash.progress(0.85)
+        AppHelper.callAfter(_ready)
+
+    threading.Thread(target=_boot, daemon=True).start()
     AppHelper.runEventLoop()
 
 

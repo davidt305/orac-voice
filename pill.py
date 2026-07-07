@@ -9,14 +9,15 @@ import time
 from collections import deque
 
 import objc
-from AppKit import (NSApplication, NSApplicationActivationPolicyAccessory,
-                    NSBackingStoreBuffered, NSBezierPath, NSColor, NSMenu,
+from AppKit import (NSApplication, NSApplicationActivationPolicyRegular,
+                    NSBackingStoreBuffered, NSBezierPath, NSColor, NSFont,
+                    NSFontAttributeName, NSForegroundColorAttributeName, NSMenu,
                     NSMenuItem, NSPanel, NSScreen, NSShadow, NSStatusBar, NSView,
                     NSVariableStatusItemLength,
                     NSWindowCollectionBehaviorCanJoinAllSpaces,
                     NSWindowCollectionBehaviorFullScreenAuxiliary,
                     NSWindowStyleMaskBorderless, NSWindowStyleMaskNonactivatingPanel)
-from Foundation import NSObject
+from Foundation import NSAttributedString, NSObject
 from PyObjCTools import AppHelper
 
 # Higgsfield palette
@@ -186,10 +187,138 @@ class Pill:
                     1 / 30.0, True, lambda t: self.view.setNeedsDisplay_(True))
 
 
+_app_delegate_ref = []  # the delegate dies if the GC collects it
+
+
+class _AppDelegate(NSObject):
+    def applicationShouldHandleReopen_hasVisibleWindows_(self, app, has_windows):
+        # clicking the Dock icon while running opens Settings in the browser
+        import webbrowser
+        webbrowser.open("http://127.0.0.1:8091")
+        return True
+
+
+# -------------------------------------------------------------- launch splash
+SW, SH = 300, 104  # splash window size
+
+
+class _SplashView(NSView):
+    def initWithFrame_(self, frame):
+        self = objc.super(_SplashView, self).initWithFrame_(frame)
+        if self:
+            self.disp = 0.0       # displayed progress (eases toward target)
+            self.target = 0.06
+        return self
+
+    def drawRect_(self, rect):
+        body = NSBezierPath.bezierPathWithRoundedRect_xRadius_yRadius_(
+            ((4, 4), (SW - 8, SH - 8)), 18, 18)
+        DARK.setFill()
+        body.fill()
+        glow = NSShadow.alloc().init()
+        glow.setShadowColor_(LIME.colorWithAlphaComponent_(0.7))
+        glow.setShadowBlurRadius_(10.0)
+        glow.setShadowOffset_((0, 0))
+        glow.set()
+        LIME.setStroke()
+        body.setLineWidth_(1.7)
+        body.stroke()
+        NSShadow.alloc().init().set()  # shadow off for the rest
+
+        title = NSAttributedString.alloc().initWithString_attributes_(
+            "Opening Orac Voice", {
+                NSFontAttributeName: NSFont.systemFontOfSize_weight_(15, 0.3),
+                NSForegroundColorAttributeName: WHITE})
+        sz = title.size()
+        title.drawAtPoint_(((SW - sz.width) / 2.0, SH - 44))
+
+        tx, tw, th, ty = 28, SW - 56, 7, 32
+        track = NSBezierPath.bezierPathWithRoundedRect_xRadius_yRadius_(
+            ((tx, ty), (tw, th)), th / 2, th / 2)
+        GRAY.setFill()
+        track.fill()
+        fw = max(th, tw * min(1.0, self.disp))
+        fill = NSBezierPath.bezierPathWithRoundedRect_xRadius_yRadius_(
+            ((tx, ty), (fw, th)), th / 2, th / 2)
+        LIME.setFill()
+        fill.fill()
+
+
+class Splash:
+    """Launch splash with a lime progress bar. Thread-safe: progress()/finish()
+    can be called from any thread; the bar eases up and the window closes itself
+    once finish() lands and the bar has filled."""
+
+    def __init__(self):
+        screen = NSScreen.mainScreen().frame()
+        x = (screen.size.width - SW) / 2.0
+        y = (screen.size.height - SH) / 2.0 + 40
+        win = NSPanel.alloc().initWithContentRect_styleMask_backing_defer_(
+            ((x, y), (SW, SH)),
+            NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel,
+            NSBackingStoreBuffered, False)
+        win.setLevel_(25)  # NSStatusWindowLevel
+        win.setOpaque_(False)
+        win.setBackgroundColor_(NSColor.clearColor())
+        win.setHasShadow_(False)
+        self.view = _SplashView.alloc().initWithFrame_(((0, 0), (SW, SH)))
+        win.setContentView_(self.view)
+        self.win = win
+        self._done = False
+        win.orderFrontRegardless()
+        from Foundation import NSTimer
+        self._timer = NSTimer.scheduledTimerWithTimeInterval_repeats_block_(
+            1 / 60.0, True, lambda t: self._tick())
+
+    # ---- main thread ----
+    def _tick(self):
+        v = self.view
+        v.disp += (v.target - v.disp) * 0.18
+        v.setNeedsDisplay_(True)
+        if self._done and v.disp >= 0.995:
+            self._close()
+
+    def _set_target(self, value):
+        self.view.target = max(self.view.target, min(1.0, value))  # never backward
+
+    def _finish(self):
+        self.view.target = 1.0
+        self._done = True
+
+    def _close(self):
+        if self._timer:
+            self._timer.invalidate()
+            self._timer = None
+        self.win.orderOut_(None)
+
+    # ---- callable from any thread ----
+    def progress(self, value):
+        AppHelper.callAfter(self._set_target, value)
+
+    def finish(self):
+        AppHelper.callAfter(self._finish)
+
+
 def make_app():
-    """Accessory NSApplication (no Dock icon)."""
+    """Regular Dock app: running dot, launch bounce, and clicking the Dock icon
+    reopens Settings. The menu bar icon (make_menubar) stays too. On Homebrew
+    Python the Dock would label the tile "Python", so we override the Dock icon
+    and process name to show Orac Voice's identity."""
     app = NSApplication.sharedApplication()
-    app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
+    app.setActivationPolicy_(NSApplicationActivationPolicyRegular)
+    import os
+    from AppKit import NSImage
+    from Foundation import NSProcessInfo
+    icns = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "assets", "AppIcon.icns")
+    img = NSImage.alloc().initWithContentsOfFile_(icns)
+    if img:
+        app.setApplicationIconImage_(img)
+    NSProcessInfo.processInfo().setProcessName_("Orac Voice")
+    if not _app_delegate_ref:
+        d = _AppDelegate.alloc().init()
+        app.setDelegate_(d)
+        _app_delegate_ref.append(d)
     return app
 
 

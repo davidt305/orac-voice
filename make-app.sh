@@ -25,19 +25,24 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleExecutable</key><string>orac</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.0</string>
-  <key>CFBundleVersion</key><string>1.0</string>
-  <key>LSUIElement</key><true/>
+  <key>CFBundleShortVersionString</key><string>1.4</string>
+  <key>CFBundleVersion</key><string>1.4</string>
   <key>NSMicrophoneUsageDescription</key>
   <string>Orac Voice needs the microphone to transcribe your dictation locally.</string>
 </dict>
 </plist>
 PLIST
 
+# The Dock attributes a running process to a bundle. Homebrew's Python is a
+# framework build that re-execs through its own Python.app, so without a hint
+# the Dock shows "Python". __CFBundleIdentifier makes CoreFoundation treat this
+# bundle as the main one, so the running dot, bounce and icon attach to Orac
+# Voice. flow.py also sets the Dock icon/name at runtime as a belt-and-braces.
 cat > "$APP/Contents/MacOS/orac" <<LAUNCHER
 #!/bin/bash
 cd "$DIR"
 mkdir -p .tmp
+export __CFBundleIdentifier="com.davidt.oracvoice"
 exec .venv/bin/python -u flow.py >> .tmp/orac.log 2>&1
 LAUNCHER
 chmod +x "$APP/Contents/MacOS/orac"
