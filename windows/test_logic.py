@@ -142,6 +142,30 @@ try:
             assert e.code == 400
         assert flow.CFG.get("provider", "local") == "local"
 
+    # --- 9. engine selector: whisper <-> parakeet. Parakeet 400s when
+    # onnx-asr isn't installed in this env; config must stay sane either way.
+    api("/api/config", {"engine": "whisper"})
+    assert flow.CFG.get("provider") == "local"
+    assert flow.CFG.get("stt_engine", "whisper") == "whisper"
+    assert api("/api/state")["config"]["engine"] == "whisper"
+    try:
+        api("/api/config", {"engine": "parakeet"})
+        assert flow.CFG.get("stt_engine") == "parakeet"
+        assert api("/api/state")["config"]["engine"] == "parakeet"
+    except urllib.error.HTTPError as e:
+        assert e.code == 400
+        assert flow.CFG.get("stt_engine", "whisper") == "whisper"
+    api("/api/config", {"engine": "whisper"})
+    assert flow.CFG.get("stt_engine") == "whisper"
+
+    # --- 10. filler cleaner toggle
+    api("/api/config", {"cleaner_enabled": "off"})
+    assert flow.CFG["cleaner_enabled"] is False
+    assert api("/api/state")["config"]["cleaner_enabled"] is False
+    assert flow.clean("um hello there") == ("um hello there", 0, False)
+    api("/api/config", {"cleaner_enabled": "on"})
+    assert flow.CFG["cleaner_enabled"] is True
+
     print("ALL OK: state machine, hotkey, capture and API")
 finally:
     _restore()

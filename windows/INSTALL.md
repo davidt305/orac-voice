@@ -23,10 +23,10 @@ This guide works for a person or for an AI agent (Claude, ChatGPT, etc.) executi
 ## Step 2: Python dependencies
 
 ```
-pip install sounddevice pynput
+pip install sounddevice pynput onnx-asr[cpu,hub]
 ```
 
-Those are the only two. Everything else is standard library.
+`onnx-asr` powers Parakeet, the default engine: fast even on CPU-only laptops, its model (~700MB) downloads automatically on the first run. Everything else is standard library.
 
 ## Step 3: whisper.cpp (the transcription engine)
 

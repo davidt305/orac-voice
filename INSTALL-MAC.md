@@ -23,8 +23,10 @@ Inside the project folder:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install sounddevice pyobjc
+.venv/bin/pip install sounddevice pyobjc "onnx-asr[cpu,hub]"
 ```
+
+`onnx-asr` powers Parakeet, the default engine: fast, CPU-only, and its model (~700MB) downloads automatically on the first run. The steps below install Whisper, the alternative local engine you can pick in Settings (better at mixing languages mid-sentence).
 
 ## Step 3: the Whisper model
 

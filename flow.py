@@ -26,7 +26,7 @@ import uuid
 import wave
 from pathlib import Path
 
-VERSION = "1.3"
+VERSION = "1.4"
 UI_PORT = 8091
 BASE = Path(__file__).resolve().parent
 CFG = json.loads((BASE / "config.json").read_text(encoding="utf-8"))
@@ -213,8 +213,8 @@ def _audio_cb(indata, frames, t, status):
 def warm_ollama():
     """Preloads the Ollama model without generating anything (messages=[] = preload).
     Fires when you press Fn: while you speak, the model is already loading."""
-    if CFG.get("provider") == "groq":
-        return  # nothing to preload in the cloud
+    if CFG.get("provider") == "groq" or not CFG.get("cleaner_enabled", True):
+        return  # nothing to preload: cloud mode, or cleaner off
     def _ping():
         try:
             body = json.dumps({"model": CFG["ollama_model"], "messages": [],
@@ -287,6 +287,9 @@ def multipart_post(url, fields, file_bytes, timeout, headers=None):
 
 def transcribe(wav_bytes):
     """-> (raw_text, ms)"""
+    if (CFG.get("provider") != "groq"
+            and CFG.get("stt_engine", "whisper") == "parakeet"):
+        return transcribe_parakeet(wav_bytes)
     t0 = time.monotonic()
     fields = {"response_format": "json", "temperature": "0.0"}
     url, timeout, headers = CFG["whisper_url"], 120, None
@@ -304,9 +307,9 @@ def transcribe(wav_bytes):
     # for the whole window and TRANSLATES the rest. Dictionary vocab is added.
     parts = []
     if CFG["language"] == "auto":
-        parts.append("Ya, perfecto, so we need to check el presupuesto with "
-                     "the Sales Team, and then management, finance and "
-                     "operations confirman la reunión del martes, ok let's "
+        parts.append("Ya, perfecto, entonces revisamos el presupuesto del "
+                     "cliente, so we need to check the budget with the Sales "
+                     "Team, y confirmamos la reunión del martes, ok let's "
                      "begin.")
     parts += [e["written"] for e in dict_load()]
     if parts:
@@ -314,6 +317,87 @@ def transcribe(wav_bytes):
     resp = multipart_post(url, fields, wav_bytes, timeout=timeout, headers=headers)
     text = " ".join(resp.get("text", "").split())  # whisper puts \n in the text
     return text, int((time.monotonic() - t0) * 1000)
+
+
+# ------------------------------------------------------------ parakeet (local STT)
+# stt_engine=parakeet: NVIDIA Parakeet tdt-0.6b-v3 int8 via onnx-asr, ~10x
+# faster than whisper on CPU. It picks ONE language per clip and TRANSLATES
+# the rest (no prompt to anchor it), so the clip is split at pauses and each
+# chunk is recognized on its own: sentence-level ES/EN mixing survives,
+# mid-sentence mixing may lose words (that's whisper's strength).
+_parakeet = None
+_parakeet_lock = threading.Lock()
+
+
+def ensure_parakeet():
+    """Load the model (first time downloads ~700MB to the HF cache). Blocks;
+    call from a thread on hot-switch. Raises if onnx-asr is not installed."""
+    global _parakeet
+    with _parakeet_lock:
+        if _parakeet is None:
+            import onnx_asr  # .venv/bin/pip install "onnx-asr[cpu,hub]"
+            print("Loading Parakeet (first time downloads ~700MB)...")
+            _parakeet = onnx_asr.load_model(
+                "nemo-parakeet-tdt-0.6b-v3", quantization="int8",
+                providers=["CPUExecutionProvider"])  # CPU beats CoreML here
+            print("Parakeet ready.")
+    return _parakeet
+
+
+def _split_on_pauses(raw, rate, pause_s=0.45):
+    """int16 mono -> chunks split at silences >= pause_s. 30ms windows,
+    150ms padding each side, threshold relative to the clip's own peak so a
+    noisy mic floor doesn't mask the pauses. [] if nothing voiced."""
+    samples = array.array("h", raw)
+    win = int(rate * 0.03)
+    n = len(samples) // win
+    need, pad = int(pause_s / 0.03), 5  # pad: 5 windows = 150ms
+    peaks = [max(map(abs, samples[i * win:(i + 1) * win]), default=0)
+             for i in range(n)]
+    thresh = max(500, max(peaks, default=0) // 20)
+    chunks, start, gap = [], None, 0
+    for i in range(n):
+        if peaks[i] >= thresh:
+            if start is None:
+                start = i
+            gap = 0
+        elif start is not None:
+            gap += 1
+            if gap >= need:
+                chunks.append((start, i - gap + 1))
+                start, gap = None, 0
+    if start is not None:
+        chunks.append((start, n))
+    return [samples[max(0, a - pad) * win:min(n, b + pad) * win].tobytes()
+            for a, b in chunks]
+
+
+def transcribe_parakeet(wav_bytes):
+    """-> (raw_text, ms). Same contract as transcribe()."""
+    import numpy as np  # onnx-asr dependency, present when parakeet works
+    t0 = time.monotonic()
+    model = ensure_parakeet()
+    with wave.open(io.BytesIO(wav_bytes)) as w:
+        raw = w.readframes(w.getnframes())
+    parts = []
+    for chunk in _split_on_pauses(raw, SAMPLE_RATE) or [raw]:
+        wf = np.frombuffer(chunk, np.int16).astype(np.float32) / 32768.0
+        parts.append(model.recognize(wf, sample_rate=SAMPLE_RATE))
+    text = " ".join(" ".join(p.split()) for p in parts if p).strip()
+    return text, int((time.monotonic() - t0) * 1000)
+
+
+def ensure_stt():
+    """Startup/test: bring up whatever the configured STT engine needs."""
+    if (CFG.get("provider") != "groq"
+            and CFG.get("stt_engine", "whisper") == "parakeet"):
+        try:
+            ensure_parakeet()
+        except ImportError:
+            sys.exit("stt_engine=parakeet but onnx-asr is missing: "
+                     ".venv/bin/pip install \"onnx-asr[cpu,hub]\"")
+    else:
+        ensure_whisper()
 
 
 def _norm_words(s):
@@ -338,6 +422,8 @@ def _rewrote(raw, text):
 
 def clean(raw):
     """-> (clean_text, ms, fell_back). Never raises: if the cleaner fails, returns raw."""
+    if not CFG.get("cleaner_enabled", True):
+        return raw, 0, False  # cleaner off: paste exactly what the engine heard
     t0 = time.monotonic()
     try:
         # Input:/Output: mirrors the pattern of the system prompt examples:
@@ -573,15 +659,25 @@ def start_ui_server():
                                               "whisper-large-v3-turbo")
                     llm = "Groq · " + CFG.get("groq_chat_model",
                                               "llama-3.3-70b-versatile")
+                elif CFG.get("stt_engine", "whisper") == "parakeet":
+                    stt = "Parakeet · tdt-0.6b-v3 int8"
+                    llm = "Ollama · " + CFG["ollama_model"]
                 else:
                     stt = "Whisper · " + Path(
                         CFG["whisper_model"]).stem.replace("ggml-", "")
                     llm = "Ollama · " + CFG["ollama_model"]
+                engine = ("groq" if CFG.get("provider") == "groq"
+                          else CFG.get("stt_engine", "whisper"))
+                if not CFG.get("cleaner_enabled", True):
+                    llm = "Cleaner off"
                 self._send(200, {
                     "config": {"hotkey": CFG["hotkey"],
                                "language": CFG["language"],
                                "mic": CFG.get("mic") or "",
                                "provider": CFG.get("provider", "local"),
+                               "engine": engine,
+                               "cleaner_enabled": CFG.get("cleaner_enabled",
+                                                          True),
                                "mic_enabled": CFG.get("mic_enabled", True)},
                     "about": {"version": VERSION, "stt": stt, "llm": llm},
                     "mics": mics, "history": history_read(),
@@ -627,6 +723,35 @@ def start_ui_server():
                         # start, the next dictation errors and the log says why
                         threading.Thread(target=ensure_whisper,
                                          daemon=True).start()
+                if body.get("engine") in ("whisper", "parakeet", "groq"):
+                    eng = body["engine"]
+                    if eng == "groq":
+                        if not groq_key():
+                            return self._send(
+                                400, ("No Groq API key: put it in groq_key.txt "
+                                      "next to flow.py").encode(),
+                                "text/plain; charset=utf-8")
+                        CFG["provider"] = "groq"
+                    else:
+                        if eng == "parakeet":
+                            try:
+                                import onnx_asr  # noqa: F401
+                            except ImportError:
+                                return self._send(
+                                    400, ("Parakeet needs onnx-asr: pip "
+                                          "install \"onnx-asr[cpu,hub]\" in "
+                                          "the app venv").encode(),
+                                    "text/plain; charset=utf-8")
+                        CFG["provider"] = "local"
+                        CFG["stt_engine"] = eng
+                        # fire-and-forget like provider: errors surface on the
+                        # next dictation (parakeet's 1st load downloads ~700MB)
+                        threading.Thread(
+                            target=(ensure_parakeet if eng == "parakeet"
+                                    else ensure_whisper),
+                            daemon=True).start()
+                if body.get("cleaner_enabled") in ("on", "off"):
+                    CFG["cleaner_enabled"] = body["cleaner_enabled"] == "on"
                 if body.get("mic_enabled") in ("on", "off"):
                     if _state != IDLE:
                         return self._send(409, "Finish dictating first".encode(),
@@ -910,7 +1035,7 @@ def on_fn_up():
 # ---------------------------------------------------------------- main
 def run_test(wav_path):
     """Headless pipeline over a WAV: the E2E self-check (no hotkey or mic)."""
-    ensure_whisper()
+    ensure_stt()
     wav = Path(wav_path).read_bytes()
     with wave.open(wav_path, "rb") as w:
         duration = w.getnframes() / w.getframerate()
@@ -935,7 +1060,7 @@ def main():
     import sounddevice
     _sd = sounddevice
     start_ui_server()  # also acts as the single-instance lock
-    ensure_whisper()
+    ensure_stt()
     open_stream()
 
     global PILL

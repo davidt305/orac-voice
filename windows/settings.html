@@ -364,6 +364,14 @@
   </div>
   <div class="row">
     <div class="label">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></div>
+      <div><b>Filler cleaner<span class="help">?<span class="tip">After transcription, a small AI language model deletes filler words like "um", "uh" and "you know" before the text is pasted, keeping everything else exactly as you said it. On <em>Whisper</em> and <em>Parakeet</em> it runs on this computer (Llama 3.2 through Ollama); on <em>Groq</em> it runs on Groq's API. Off pastes exactly what the engine heard: a bit faster and uses less memory.</span></span></b>
+      <small>Removes filler words before pasting</small></div>
+    </div>
+    <div class="switch" id="cleaner" title="Filler cleaner on/off"></div>
+  </div>
+  <div class="row">
+    <div class="label">
       <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
       <div><b>Language</b><small>Dictation detection</small></div>
     </div>
@@ -372,8 +380,8 @@
   <div class="row">
     <div class="label">
       <div class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg></div>
-      <div><b>Engine<span class="help">?<span class="tip"><b>Local</b><br>Runs everything on this computer, your audio never leaves it. Recommended only on powerful hardware (Apple Silicon or an NVIDIA GPU).<br><br><b>Groq</b><br>Processes the dictation on a private cloud API that doesn't store your audio or use it for data training. Fast on any computer.</span></span></b>
-      <small>Both are private · Local needs powerful hardware</small></div>
+      <div><b>Engine<span class="help">?<span class="tip"><b>Whisper</b> (local)<br>Runs on this computer, your audio never leaves it. Best at mixing Spanish and English in the same sentence. Needs powerful hardware (Apple Silicon or an NVIDIA GPU).<br><br><b>Parakeet</b> (local) <span style="color:var(--lime);font-weight:600">(recommended)</span><br>Also 100% on this computer, and much faster, even without a GPU. One language per phrase: mixing languages mid-sentence can drop words. First use downloads the model (~700MB).<br><br><b>Groq</b> (cloud)<br>Processes the dictation on a private cloud API that doesn't store your audio or use it for data training. Fast on any computer.</span></span></b>
+      <small>All private · Whisper &amp; Parakeet run on this computer</small></div>
     </div>
     <div class="seg" id="engine" style="flex-wrap:nowrap"></div>
   </div>
@@ -434,7 +442,7 @@
       <span class="hleft"><span class="accnum">01</span><span class="ic sm"><svg viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg></span> Turning your voice into text</span>
       <span class="chev">▼</span>
     </div>
-    <div class="collapse closed"><div><p class="accbody">Whisper, the transcription engine, listens to your recording and writes down exactly what you said. On <em>Local</em> it runs on this computer and your audio never leaves it. On <em>Groq</em> the audio travels over an encrypted connection to Groq's API, which doesn't store it and doesn't use it for data training.</p></div></div>
+    <div class="collapse closed"><div><p class="accbody">The transcription engine listens to your recording and writes down exactly what you said. On <em>Whisper</em> and <em>Parakeet</em> it runs on this computer and your audio never leaves it. On <em>Groq</em> the audio travels over an encrypted connection to Groq's API, which doesn't store it and doesn't use it for data training.</p></div></div>
   </div>
   <div class="acc">
     <div class="accbar">
@@ -571,8 +579,16 @@ function render() {
   document.querySelectorAll(".hk-label").forEach(
     el => el.textContent = state.config.hotkey.label);
   seg(document.getElementById("langs"), LANGS, state.config.language, "language");
-  seg(document.getElementById("engine"), {local: "Local", groq: "Groq"},
-      state.config.provider, "provider");
+  seg(document.getElementById("engine"),
+      {parakeet: "Parakeet", whisper: "Whisper", groq: "Groq"},
+      state.config.engine, "engine");
+  const cleaner = document.getElementById("cleaner");
+  cleaner.classList.toggle("on", !!state.config.cleaner_enabled);
+  cleaner.onclick = async () => {
+    const turningOff = state.config.cleaner_enabled;
+    await api("/api/config", {cleaner_enabled: turningOff ? "off" : "on"});
+    toast(turningOff ? "Filler cleaner off" : "Filler cleaner on"); load();
+  };
   const micen = document.getElementById("micen");
   micen.classList.toggle("on", !!state.config.mic_enabled);
   micen.onclick = async () => {

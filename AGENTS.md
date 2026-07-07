@@ -26,7 +26,7 @@ Only 4 functions differ per platform (hotkey listener, clipboard, paste, sounds)
 brew install whisper-cpp ollama
 brew services start ollama
 ollama pull llama3.2:3b
-python3 -m venv .venv && .venv/bin/pip install sounddevice pyobjc
+python3 -m venv .venv && .venv/bin/pip install sounddevice pyobjc "onnx-asr[cpu,hub]"
 # model (16GB+ RAM; use ggml-small-q8_0.bin for 8GB and update config.json)
 curl -L -o models/ggml-large-v3-turbo-q5_0.bin \
   https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin
@@ -41,7 +41,7 @@ macOS will require Microphone, Input Monitoring and Accessibility permissions. W
 Work inside the `windows/` folder (it is self-contained; it can be copied alone to the target PC).
 
 1. Python 3.11+ from python.org, WITH "Add python.exe to PATH" checked.
-2. `pip install sounddevice pynput`
+2. `pip install sounddevice pynput onnx-asr[cpu,hub]` (onnx-asr = Parakeet, the default engine: usable on CPU-only machines, model auto-downloads ~700MB on first run; whisper.cpp below is only needed if the user switches the engine to Whisper)
 3. Check hardware FIRST (PowerShell): GPU via `(Get-CimInstance Win32_VideoController).Name`, physical cores via `(Get-CimInstance Win32_Processor).NumberOfCores`. **No NVIDIA GPU → recommend Cloud mode (Groq) as the primary path**: key in `groq_key.txt`, `"provider": "groq"` in config.json, and skip steps 4-5 entirely (Intel/AMD integrated graphics like Iris Xe are NOT accelerated; pure-CPU whisper is unusably slow). Install the local engines on a non-NVIDIA machine only if the user explicitly wants full privacy. For the local path: whisper.cpp Windows binaries from https://github.com/ggml-org/whisper.cpp/releases: `whisper-cublas-*-bin-x64.zip` if NVIDIA, otherwise `whisper-bin-x64.zip`. Extract so that `windows\whisper-bin\whisper-server.exe` exists (flatten any `Release/` subfolder).
 4. Model into `windows\models\`, decided by GPU, not RAM (RAM only decides what fits; large on CPU ≈ 60 s per dictation, unusable): NVIDIA → `ggml-large-v3-turbo-q5_0.bin` (update `whisper_model` in config.json); no NVIDIA → `ggml-small-q8_0.bin` (the config.json default) and set `whisper_threads` in config.json to the physical core count. Download from https://huggingface.co/ggerganov/whisper.cpp/tree/main
 5. Ollama from https://ollama.com/download/windows then `ollama pull llama3.2:3b`

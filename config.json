@@ -22,5 +22,7 @@
   "sound_start": "/System/Library/Sounds/Pop.aiff",
   "sound_stop": "/System/Library/Sounds/Bottle.aiff",
   "sound_error": "/System/Library/Sounds/Basso.aiff",
-  "mic_enabled": true
+  "mic_enabled": true,
+  "stt_engine": "parakeet",
+  "cleaner_enabled": true
 }
