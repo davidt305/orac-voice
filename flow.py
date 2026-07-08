@@ -214,6 +214,90 @@ def do_uninstall():
     subprocess.Popen(["/bin/sh", "-c", script], start_new_session=True)
 
 
+# ---------------------------------------------------------------- self-update
+# The install is a git clone, so updating = move to the latest tagged release and
+# relaunch. User data (history.jsonl, dictionary.json, groq_key.txt) is gitignored
+# so a reset --hard never touches it. Pull-based: the app asks GitHub, nothing is
+# pushed to the user's machine.
+REPO = "davidt305/orac-voice"
+_update_cache = {"at": -1e9, "info": None}  # 1 check/launch + every ~6h
+
+
+def _version_tuple(v):
+    """'v1.4' / '1.4.0' -> (1, 4, 0). Numeric compare so v1.10 > v1.9."""
+    return tuple(int(n) for n in re.findall(r"\d+", v or "")) or (0,)
+
+
+def check_update(force=False):
+    """Latest tagged GitHub release vs VERSION. Cached ~6h (GitHub allows 60
+    req/h unauthenticated). Returns {available, version, notes, url}; on any
+    error (offline, rate-limited) returns available=False."""
+    now = time.monotonic()
+    if not force and _update_cache["info"] and now - _update_cache["at"] < 6 * 3600:
+        return _update_cache["info"]
+    info = {"available": False, "version": VERSION, "notes": "", "url": ""}
+    try:
+        req = urllib.request.Request(
+            f"https://api.github.com/repos/{REPO}/releases/latest",
+            headers={"Accept": "application/vnd.github+json",
+                     "User-Agent": "OracVoice/" + VERSION})
+        with urllib.request.urlopen(req, timeout=6) as r:
+            rel = json.loads(r.read())
+        tag = rel.get("tag_name", "")
+        if tag and _version_tuple(tag) > _version_tuple(VERSION):
+            info = {"available": True, "version": tag.lstrip("v"),
+                    "notes": (rel.get("name") or "").strip(),
+                    "url": rel.get("html_url", "")}
+    except Exception:
+        pass
+    _update_cache.update(at=now, info=info)
+    return info
+
+
+def apply_update():
+    """Move this clone to the latest tag and reinstall deps if they changed.
+    Raises on git failure (the endpoint reports it). Relaunch is separate."""
+    tag = "v" + check_update(force=True)["version"]
+    git = ["git", "-C", str(BASE)]
+    reqs = BASE / "requirements.txt"
+    before = reqs.read_bytes() if reqs.exists() else b""
+    subprocess.run(git + ["fetch", "--tags", "--force"], check=True,
+                   capture_output=True, timeout=120)
+    subprocess.run(git + ["reset", "--hard", tag], check=True,
+                   capture_output=True, timeout=60)
+    if reqs.exists() and reqs.read_bytes() != before:
+        subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(reqs)],
+                       check=False, timeout=600)
+
+
+def _relaunch():
+    """Quit and reopen the app once the port is free (single-instance lock)."""
+    if _whisper_proc:
+        _whisper_proc.terminate()
+    subprocess.Popen(["/bin/sh", "-c", "sleep 1.5; open -a 'Orac Voice'"],
+                     start_new_session=True)
+    _quit_app()
+
+
+def notify(title, message):
+    """Best-effort macOS system notification."""
+    try:
+        subprocess.Popen(["osascript", "-e",
+                          f"display notification {json.dumps(message)} "
+                          f"with title {json.dumps(title)}"])
+    except Exception:
+        pass
+
+
+def notify_if_update():
+    """On launch: if a newer release exists, nudge with a system notification
+    (the Settings banner is the primary surface)."""
+    info = check_update()
+    if info["available"]:
+        notify("Orac Voice update available",
+               f"v{info['version']} is ready. Open Settings to update.")
+
+
 # ---------------------------------------------------------------- audio
 SAMPLE_RATE = 16000
 _audio_buf = []
@@ -713,6 +797,8 @@ def start_ui_server():
                     "dictionary": dict_load()})
             elif self.path == "/api/capture":
                 self._send(200, _capture)
+            elif self.path == "/api/update/check":
+                self._send(200, check_update())
             else:
                 self._send(404, {"error": "not found"})
 
@@ -845,6 +931,13 @@ def start_ui_server():
             elif self.path == "/api/history/clear":
                 history_clear()
                 self._send(200, {"ok": True})
+            elif self.path == "/api/update/apply":
+                try:
+                    apply_update()
+                except Exception as e:
+                    return self._send(500, {"ok": False, "error": str(e)})
+                self._send(200, {"ok": True})
+                threading.Timer(0.5, _relaunch).start()
             else:
                 self._send(404, {"error": "not found"})
 
@@ -1111,6 +1204,7 @@ def main():
         listen, post = _ensure_event_access()
         setup_hotkey_tap(on_fn_down, on_fn_up, on_escape=cancel_dictation)
         splash.finish()
+        threading.Thread(target=notify_if_update, daemon=True).start()
         if listen and post:
             print(f"Orac Voice ready. Hold {CFG['hotkey']['label']} to dictate; "
                   f"double-tap = hands-free. Settings: http://127.0.0.1:{UI_PORT}")
