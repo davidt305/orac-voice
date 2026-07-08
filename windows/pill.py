@@ -11,16 +11,46 @@ the main thread.
 """
 import ctypes
 import math
+import os
+import threading
 import time
 import tkinter as tk
 from collections import deque
 
 LIME = "#ccff00"
 BG = "#141414"
+BLACK = "#000000"   # splash body: matches the logo's black background
+GRAY = "#2e2e2e"    # splash progress track
 CHROMA = "#010101"  # color reserved for transparency (never drawn)
 W, H = 170, 36
 N_BARS, N_DOTS = 11, 8
 SPAN_PAD = 18       # center zone margin at each end (no buttons on Windows)
+
+SW, SH = 344, 150          # landscape splash window (mirrors the Mac splash)
+LOGO_W, LOGO_H = 284, 84   # horizontal brand wordmark (~3.36:1)
+_HERE = os.path.dirname(os.path.abspath(__file__))
+ICO = os.path.join(_HERE, "assets", "OracVoice.ico")
+SPLASH_LOGO = os.path.join(_HERE, "assets", "splash-logo.png")
+
+
+def set_app_id():
+    """Tag the process with our AppUserModelID so the taskbar and notifications
+    say 'Orac Voice' instead of Python. No-op off Windows."""
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            "com.davidt.oracvoice")
+    except Exception:
+        pass
+
+
+def _round_rect(c, x0, y0, x1, y1, r, color):
+    """Filled rounded rectangle on a Canvas: 4 corner circles + a cross of rects."""
+    c.create_oval(x0, y0, x0 + 2 * r, y0 + 2 * r, fill=color, outline=color)
+    c.create_oval(x1 - 2 * r, y0, x1, y0 + 2 * r, fill=color, outline=color)
+    c.create_oval(x0, y1 - 2 * r, x0 + 2 * r, y1, fill=color, outline=color)
+    c.create_oval(x1 - 2 * r, y1 - 2 * r, x1, y1, fill=color, outline=color)
+    c.create_rectangle(x0 + r, y0, x1 - r, y1, fill=color, outline=color)
+    c.create_rectangle(x0, y0 + r, x1, y1 - r, fill=color, outline=color)
 
 GWL_EXSTYLE = -20
 WS_EX_NOACTIVATE = 0x08000000
@@ -148,10 +178,83 @@ class Pill:
         self.root.mainloop()
 
 
+class Splash:
+    """Launch splash for Windows: dark rounded window with the brand logo and a
+    lime progress bar. run(work) shows it, runs the slow `work` (model load) in a
+    worker thread while the bar eases 0->100, then closes. Owns its own tk root,
+    destroyed before the Pill's root is created (two live Tk roots clash)."""
+
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.overrideredirect(True)
+        self.root.attributes("-topmost", True)
+        try:
+            self.root.attributes("-transparentcolor", CHROMA)  # Windows only
+        except tk.TclError:
+            pass  # off Windows: corners just won't be transparent (demo)
+        try:
+            self.root.iconbitmap(ICO)  # taskbar icon while loading (Windows)
+        except Exception:
+            pass
+        sw = self.root.winfo_screenwidth()
+        sh = self.root.winfo_screenheight()
+        self.root.geometry(f"{SW}x{SH}+{(sw - SW) // 2}+{(sh - SH) // 2 - 40}")
+        c = tk.Canvas(self.root, width=SW, height=SH, bg=CHROMA,
+                      highlightthickness=0)
+        c.pack()
+        _round_rect(c, 2, 2, SW - 2, SH - 2, 22, LIME)    # lime outline
+        _round_rect(c, 4, 4, SW - 4, SH - 4, 20, BLACK)   # dark body
+        try:
+            self.logo = tk.PhotoImage(file=SPLASH_LOGO)   # keep a ref alive
+            c.create_image(SW // 2, 14 + LOGO_H // 2, image=self.logo)
+        except Exception:
+            self.logo = None
+            c.create_text(SW // 2, 14 + LOGO_H // 2, text="OracVoice",
+                          fill=LIME, font=("Segoe UI", 22, "bold"))
+        c.create_text(SW // 2, SH - 42, text="Opening Orac Voice",
+                      fill="#8a8a8a", font=("Segoe UI", 10))
+        self.tx, self.tw, self.ty, self.th = 28, SW - 56, SH - 26, 7
+        _round_rect(c, self.tx, self.ty, self.tx + self.tw, self.ty + self.th,
+                    self.th // 2, GRAY)                   # track
+        self.fill = c.create_rectangle(self.tx, self.ty, self.tx + self.th,
+                                       self.ty + self.th, outline="", fill=LIME)
+        self.canvas = c
+        self.disp = 0.06
+        self.target = 0.06     # written from the worker thread; float read is atomic
+        self._done = False
+        self._err = None
+
+    def _tick(self):
+        self.disp += (self.target - self.disp) * 0.18
+        w = max(self.th, self.tw * min(1.0, self.disp))
+        self.canvas.coords(self.fill, self.tx, self.ty,
+                           self.tx + w, self.ty + self.th)
+        if self._done and self.disp >= 0.995:
+            self.root.destroy()
+            return
+        self.root.after(16, self._tick)
+
+    def run(self, work):
+        """Block on the tk loop until `work` finishes and the bar fills, then
+        close. Re-raises anything `work` raised (so a failed load still fails)."""
+        def worker():
+            self.target = 0.30
+            try:
+                work()
+            except BaseException as e:   # surface on the main thread after close
+                self._err = e
+            finally:
+                self.target = 1.0
+                self._done = True
+        threading.Thread(target=worker, daemon=True).start()
+        self.root.after(16, self._tick)
+        self.root.mainloop()
+        if self._err is not None:
+            raise self._err
+
+
 if __name__ == "__main__":
     # standalone demo: recording 4s (fake waveform) -> processing 2.5s -> quit
-    import threading
-
     pill = Pill()
 
     def fake():
