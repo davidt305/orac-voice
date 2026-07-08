@@ -28,8 +28,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleExecutable</key><string>orac</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.4</string>
-  <key>CFBundleVersion</key><string>1.4</string>
+  <key>CFBundleShortVersionString</key><string>1.5</string>
+  <key>CFBundleVersion</key><string>1.5</string>
   <key>NSMicrophoneUsageDescription</key>
   <string>Orac Voice needs the microphone to transcribe your dictation locally.</string>
 </dict>

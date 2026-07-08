@@ -26,7 +26,7 @@ import uuid
 import wave
 from pathlib import Path
 
-VERSION = "1.4"
+VERSION = "1.5"
 UI_PORT = 8091
 BASE = Path(__file__).resolve().parent
 CFG = json.loads((BASE / "config.json").read_text(encoding="utf-8"))
