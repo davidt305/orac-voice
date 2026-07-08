@@ -1,4 +1,10 @@
 #!/bin/bash
+# WARNING: the shipped app icon is the hand-made lime mic (AppIcon.icns /
+# OracVoice.ico committed as artifacts, no >512px source). This script
+# regenerates from assets/logo-icon.png (the brand isotipo, which David chose
+# NOT to use as the app icon) and WILL overwrite the lime mic. Only run it if
+# you actually want the isotipo back.
+#
 # Regenerates the app icons from the single source PNG (assets/logo-icon.png,
 # the isotipo). Run this whenever the logo changes; then run make-app.sh (Mac)
 # so the new .icns is copied into the bundle.
